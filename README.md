@@ -1,6 +1,8 @@
-# CRUCIBLE
+# gpu-kernel-verification-harness
 
-An execution-grounded task foundry for ML-systems training data.
+**CRUCIBLE** - an execution-grounded verification harness and task foundry for
+ML-systems training data. CUDA / Triton / PyTorch numerics, performance,
+anti-cheat, compile, and multi-rank distributed oracles.
 
 Implementation of `CRUCIBLE_Proposal.pdf`. The product is not tasks — it is the
 instrumentation that turns task quality into a number:
