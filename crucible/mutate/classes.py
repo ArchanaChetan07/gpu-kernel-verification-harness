@@ -758,14 +758,47 @@ class UninitOutput(BaseMutation):
     def _sites(self, tree: ast.AST, src: str) -> list[Site]:
         out: list[Site] = []
         for node in walk_ordered(tree):
-            if not isinstance(node, ast.If) or not node.orelse:
+            if not isinstance(node, ast.If):
                 continue
             body_stores = _store_statements(node.body)
-            else_stores = _store_statements(node.orelse)
-            for name in sorted(set(body_stores) & set(else_stores)):
+
+            if node.orelse:
+                else_stores = _store_statements(node.orelse)
+                for name in sorted(set(body_stores) & set(else_stores)):
+                    if not self._looks_like_output(name):
+                        continue
+                    stmt = else_stores[name]
+                    out.append(
+                        site_for(
+                            tree,
+                            stmt,
+                            label=ast.unparse(stmt),
+                            meta={
+                                "buffer": name,
+                                "branch": "orelse",
+                                "surviving_store": ast.unparse(body_stores[name]),
+                            },
+                        )
+                    )
+                continue
+
+            # Guard-with-continue: the idiom kernels actually use for a boundary
+            # tile ("if nothing valid here: write the tile, continue"). There is
+            # no orelse, so an if/else-only pattern finds nothing in exactly the
+            # code this mutation exists to attack. Dropping the guard's store
+            # leaves that tile holding whatever torch.empty handed back - the
+            # "returned uninitialized memory" defect verbatim.
+            if not any(isinstance(st, (ast.Continue, ast.Return)) for st in node.body):
+                continue
+            for name, stmt in sorted(body_stores.items()):
                 if not self._looks_like_output(name):
                     continue
-                stmt = else_stores[name]
+                elsewhere = self._other_stores(tree, name, stmt)
+                if not elsewhere:
+                    # Nothing else writes this buffer, so deleting the only
+                    # store leaves it wholly unwritten - a different (and more
+                    # obvious) defect than the partial hole this class models.
+                    continue
                 out.append(
                     site_for(
                         tree,
@@ -773,12 +806,28 @@ class UninitOutput(BaseMutation):
                         label=ast.unparse(stmt),
                         meta={
                             "buffer": name,
-                            "branch": "orelse",
-                            "surviving_store": ast.unparse(body_stores[name]),
+                            "branch": "guard",
+                            "surviving_store": ast.unparse(elsewhere[0]),
                         },
                     )
                 )
         return out
+
+    @staticmethod
+    def _other_stores(tree: ast.AST, name: str, exclude: ast.stmt) -> list[ast.stmt]:
+        """Every other statement that writes into ``name``."""
+        found: list[ast.stmt] = []
+        for node in walk_ordered(tree):
+            if node is exclude:
+                continue
+            target = None
+            if isinstance(node, ast.Assign) and len(node.targets) == 1:
+                target = node.targets[0]
+            elif isinstance(node, ast.AugAssign):
+                target = node.target
+            if isinstance(target, ast.Subscript) and _base_name(target) == name:
+                found.append(node)
+        return found
 
     @staticmethod
     def _looks_like_output(name: str) -> bool:
@@ -803,6 +852,21 @@ class LayoutConflict(BaseMutation):
         "source and the result changes without raising."
     )
 
+    # SCOPE, stated plainly because it bounds what this class can ever produce:
+    # `x.contiguous().expand_as(x)` is value-preserving. It changes only
+    # ALIASING, so it is observable exactly when something later writes through
+    # the view in place. A layout conflict that changes VALUES - the Triton
+    # #10987 shape, where the compiler picks a more-replicated layout and
+    # returns wrong numbers - is a property of a real compiler choosing
+    # layouts, and pure-torch view ops preserve values by construction. So on
+    # torch seeds this class is honestly narrow; reproducing the compiler
+    # variant needs a Triton seed executing on a working Triton toolchain.
+    #
+    # Requiring the aliasing precondition drops the site count from 37 to
+    # however many are real. That is the point: 37 sites that can never be
+    # admitted make the catalogue look healthier than it is, which is the same
+    # invisible failure this project exists to prevent.
+
     def _sites(self, tree: ast.AST, src: str) -> list[Site]:
         out: list[Site] = []
         for node in walk_ordered(tree):
@@ -812,6 +876,8 @@ class LayoutConflict(BaseMutation):
                 continue
             # Already materialised: forcing it again is a textual no-op.
             if isinstance(node.func.value, ast.Call) and _call_name(node.func.value) == "contiguous":
+                continue
+            if not self._aliased_downstream(tree, node):
                 continue
             out.append(
                 site_for(
@@ -826,6 +892,61 @@ class LayoutConflict(BaseMutation):
                 )
             )
         return out
+
+    @staticmethod
+    def _aliased_downstream(tree: ast.AST, node: ast.Call) -> bool:
+        """Is the viewed buffer written in place anywhere?
+
+        Without such a write, materialising the view changes nothing an oracle
+        can see, and the mutation is discarded as semantically neutral after
+        paying for a full shape sweep.
+        """
+        base = _base_name(node.func.value if isinstance(node.func, ast.Attribute) else node)
+        if not base:
+            return False
+
+        # The view is often BOUND first and mutated through that name
+        # (`view = x.transpose(0, 1)` then `view.mul_(f)`). Watching only the
+        # source buffer misses the most idiomatic aliasing there is.
+        aliases = {base}
+        for other in walk_ordered(tree):
+            if (
+                isinstance(other, ast.Assign)
+                and other.value is node
+                and len(other.targets) == 1
+                and isinstance(other.targets[0], ast.Name)
+            ):
+                aliases.add(other.targets[0].id)
+
+        for other in walk_ordered(tree):
+            # Any trailing-underscore method is torch's in-place convention.
+            if (
+                isinstance(other, ast.Expr)
+                and isinstance(other.value, ast.Call)
+                and isinstance(other.value.func, ast.Attribute)
+                and other.value.func.attr.endswith("_")
+                and not other.value.func.attr.startswith("_")
+                and _base_name(other.value.func.value) in aliases
+            ):
+                return True
+
+        for other in walk_ordered(tree):
+            target = None
+            if isinstance(other, ast.Assign) and len(other.targets) == 1:
+                target = other.targets[0]
+            elif isinstance(other, ast.AugAssign):
+                target = other.target
+            if isinstance(target, ast.Subscript) and _base_name(target) in aliases:
+                return True
+            if (
+                isinstance(other, ast.Expr)
+                and isinstance(other.value, ast.Call)
+                and isinstance(other.value.func, ast.Attribute)
+                and other.value.func.attr in STORE_METHODS
+                and _base_name(other.value.func.value) in aliases
+            ):
+                return True
+        return False
 
     def _transform(self, tree: ast.AST, node: ast.AST, site: Site) -> None:
         if not isinstance(node, ast.Call):
