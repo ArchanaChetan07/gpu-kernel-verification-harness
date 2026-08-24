@@ -103,10 +103,17 @@ modal run deploy/modal_app.py::smoke
 modal run deploy/modal_app.py::full --limit 200
 ```
 
-**Minimum useful hardware is sm_80 (Ampere).** The highest-value tier is silent
-numerics, and a reduced-precision accumulation bug only produces a witness where
-bf16 accumulation is real. On Turing and older those mutations are discarded as
-witness-free and the tasks are never manufactured.
+**Hardware.** Most of the harness runs anywhere, including CPU-only. Measured on
+a Turing T1000 (sm_75, emulated bf16), `accum_dtype` was still the single most
+productive mutation class -- storage rounding to fp16/bf16 is real even without
+tensor cores, so the witness appears. Ampere (sm_80+) is preferred for fidelity
+and required for performance claims that transfer, but it is not a precondition
+for manufacturing silent-numerics tasks.
+
+What genuinely needs a Linux GPU box: O4's Triton lowering and register-spill
+checks (they SKIP wherever `libtriton` will not load), the T1 tier (a compile
+error needs a compiler), and any JAX/Pallas seed -- 12 of the 48 taxonomy cells
+are unreachable without one.
 
 ---
 
