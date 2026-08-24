@@ -1,0 +1,2 @@
+WARNING crucible.redteam.suite: attack memoize_inputs on seed dataloader.sharded_batch_stream was caught by ['O3/static_denylist'], not by the expected O3/randomized_inputs
+WARNING crucible.redteam.suite: attack memoize_inputs: expected catcher O3/randomized_inputs, actual ['O3/static_denylist']

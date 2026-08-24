@@ -1,0 +1,44 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+.venv/
+venv/
+env/
+
+# CRUCIBLE runtime artifacts
+.crucible/
+caps.json
+*.npy
+*.npz
+sandbox-*/
+verdicts/
+report.html
+runs/
+
+# Generated bank content is checked in deliberately; scratch is not.
+bank/_scratch/
+
+.vscode/
+.idea/
+*.log
+
+# Run scratch: logs, generated banks, and metric dumps from local experiments.
+# The committed bank/ is the curated one; these are working artifacts.
+*.log
+bank_deep/
+bank_t6/
+bank_check/
+calibration.json
+redteam.json
+coverage.json
+capabilities.json

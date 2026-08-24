@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.git/
+.gitignore
+*.egg-info/
+.venv/
+venv/
+
+# Generated artifacts must not be baked into the image: a bank or a set of
+# verdicts copied in from a different machine would carry that machine's
+# capability record, and the whole point is that a verdict is only meaningful
+# alongside the environment that produced it.
+bank/
+verdicts/
+runs/
+*.html
+.crucible/

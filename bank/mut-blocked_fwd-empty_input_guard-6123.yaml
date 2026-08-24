@@ -1,0 +1,682 @@
+task_id: mut-blocked_fwd-empty_input_guard-6123
+schema_version: '1.0'
+created_utc: '2026-08-21T17:00:57+00:00'
+seed_source:
+  seed_id: attention.blocked_fwd
+  module: crucible.seeds.attention
+  entry: blocked_attention_fwd
+  content_sha256: d7ef12a9792ad6dddcd959662aa4b287716f75abd59ac2ffa143c743742dc6d6
+domain: triton
+failure_tier: T2
+mutation:
+  cls: empty_input_guard
+  site: attention.blocked_fwd:If@33:8#0
+  params:
+    test: n_valid == 0
+    guarded_exit: Continue
+    site: If@33:8#0
+  description: Delete the guard that skips a zero-length block, so the degenerate case falls through into the indexing path.
+baseline_code: "\"\"\"Blocked attention forward: known-good baseline.\"\"\"\nfrom __future__ import annotations\nimport torch\n\ndef blocked_attention_fwd(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, n_ctx: int, k_start: int=0, block_n: int=64) -> torch.Tensor:\n    \"\"\"Attention forward over a window of a padded KV cache.\n\n    ``q`` is ``(B, H, M, D)``; ``k`` and ``v`` are ``(B, H, N_pad, D)``. Only\n    cache entries ``[k_start, k_start + n_ctx)`` carry data -- the rest is\n    eviction slack ahead of the window and allocation slack behind it, and\n    neither may influence the result.\n    \"\"\"\n    head_dim = int(q.shape[-1])\n    n_pad = int(k.shape[-2])\n    scale = float(head_dim) ** (-0.5)\n    lo = int(k_start)\n    hi = lo + int(n_ctx)\n    out = torch.empty(q.shape, dtype=q.dtype, device=q.device)\n    if int(n_ctx) <= 0:\n        out.zero_()\n        return out\n    lead = tuple(q.shape[:-1])\n    acc = torch.zeros(lead + (head_dim,), dtype=torch.float32, device=q.device)\n    m_run = torch.full(lead, float('-inf'), dtype=torch.float32, device=q.device)\n    l_run = torch.zeros(lead, dtype=torch.float32, device=q.device)\n    q_f32 = q.to(torch.float32)\n    n_blocks = (n_pad + int(block_n) - 1) // int(block_n)\n    for blk in range(n_blocks):\n        start = blk * int(block_n)\n        offs = start + torch.arange(int(block_n), device=q.device)\n        mask = (offs >= lo) & (offs < hi)\n        n_valid = int(mask.sum())\n        if n_valid == 0:\n            continue\n        gather = offs.clamp_max(n_pad - 1)\n        k_blk = k.index_select(-2, gather).to(torch.float32)\n        v_blk = v.index_select(-2, gather).to(torch.float32)\n        k_blk_t = k_blk.transpose(-1, -2).contiguous()\n        s = q_f32 @ k_blk_t * scale\n        s = torch.where(mask, s, torch.full_like(s, float('-inf')))\n        blk_max = s.amax(dim=-1)\n        m_prev = m_run.clone()\n        torch.maximum(m_run, blk_max, out=m_run)\n        alpha = torch.exp(m_prev - m_run)\n        lane = offs - start\n        prob = torch.zeros(tuple(s.shape[:-1]) + (int(block_n),), dtype=torch.float32, device=q.device)\n        prob[..., lane] = torch.where(mask, torch.exp(s - m_run.unsqueeze(-1)), torch.zeros_like(s))\n        l_run.mul_(alpha)\n        l_run.add_(prob.sum(dim=-1))\n        acc.mul_(alpha.unsqueeze(-1))\n        acc.add_(prob @ v_blk)\n    denom = torch.where(l_run > 0, l_run, torch.ones_like(l_run))\n    out.copy_((acc / denom.unsqueeze(-1)).to(out.dtype))\n    return out\n"
+mutant_code: "\"\"\"Blocked attention forward: known-good baseline.\"\"\"\nfrom __future__ import annotations\nimport torch\n\ndef blocked_attention_fwd(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, n_ctx: int, k_start: int=0, block_n: int=64) -> torch.Tensor:\n    \"\"\"Attention forward over a window of a padded KV cache.\n\n    ``q`` is ``(B, H, M, D)``; ``k`` and ``v`` are ``(B, H, N_pad, D)``. Only\n    cache entries ``[k_start, k_start + n_ctx)`` carry data -- the rest is\n    eviction slack ahead of the window and allocation slack behind it, and\n    neither may influence the result.\n    \"\"\"\n    head_dim = int(q.shape[-1])\n    n_pad = int(k.shape[-2])\n    scale = float(head_dim) ** (-0.5)\n    lo = int(k_start)\n    hi = lo + int(n_ctx)\n    out = torch.empty(q.shape, dtype=q.dtype, device=q.device)\n    if int(n_ctx) <= 0:\n        out.zero_()\n        return out\n    lead = tuple(q.shape[:-1])\n    acc = torch.zeros(lead + (head_dim,), dtype=torch.float32, device=q.device)\n    m_run = torch.full(lead, float('-inf'), dtype=torch.float32, device=q.device)\n    l_run = torch.zeros(lead, dtype=torch.float32, device=q.device)\n    q_f32 = q.to(torch.float32)\n    n_blocks = (n_pad + int(block_n) - 1) // int(block_n)\n    for blk in range(n_blocks):\n        start = blk * int(block_n)\n        offs = start + torch.arange(int(block_n), device=q.device)\n        mask = (offs >= lo) & (offs < hi)\n        n_valid = int(mask.sum())\n        gather = offs.clamp_max(n_pad - 1)\n        k_blk = k.index_select(-2, gather).to(torch.float32)\n        v_blk = v.index_select(-2, gather).to(torch.float32)\n        k_blk_t = k_blk.transpose(-1, -2).contiguous()\n        s = q_f32 @ k_blk_t * scale\n        s = torch.where(mask, s, torch.full_like(s, float('-inf')))\n        blk_max = s.amax(dim=-1)\n        m_prev = m_run.clone()\n        torch.maximum(m_run, blk_max, out=m_run)\n        alpha = torch.exp(m_prev - m_run)\n        lane = offs - start\n        prob = torch.zeros(tuple(s.shape[:-1]) + (int(block_n),), dtype=torch.float32, device=q.device)\n        prob[..., lane] = torch.where(mask, torch.exp(s - m_run.unsqueeze(-1)), torch.zeros_like(s))\n        l_run.mul_(alpha)\n        l_run.add_(prob.sum(dim=-1))\n        acc.mul_(alpha.unsqueeze(-1))\n        acc.add_(prob @ v_blk)\n    denom = torch.where(l_run > 0, l_run, torch.ones_like(l_run))\n    out.copy_((acc / denom.unsqueeze(-1)).to(out.dtype))\n    return out\n"
+ground_truth_diff: "--- a/blocked_attention_fwd.py (mutant)\n+++ b/blocked_attention_fwd.py (baseline)\n@@ -30,6 +30,8 @@\n         offs = start + torch.arange(int(block_n), device=q.device)\n         mask = (offs >= lo) & (offs < hi)\n         n_valid = int(mask.sum())\n+        if n_valid == 0:\n+            continue\n         gather = offs.clamp_max(n_pad - 1)\n         k_blk = k.index_select(-2, gather).to(torch.float32)\n         v_blk = v.index_select(-2, gather).to(torch.float32)\n"
+witness:
+  shape:
+    name: leading_empty_block_fp32
+    kwargs:
+      batch: 1
+      heads: 1
+      q_len: 4
+      head_dim: 32
+      n_ctx: 65
+      n_pad: 192
+      k_start: 64
+      block_n: 64
+      dtype: float32
+      noncontig: false
+  max_abs_err: 0.0
+  max_rel_err: 0.0
+  tolerance: 1.922192036699903e-06
+  baseline_checksum: 4bdb5c0f6bc2147eae9cc93b21ef0cd6fd01d4351c18de40098c3a5aa90dc023
+  mutant_checksum: 415642ce12284c961304a23977d75b491fc4f6d4bbc63fe08dc09d19ff132dc9
+  kind: numeric
+  detail: 'output ''out'': 128 element(s) finite in the baseline and non-finite in the mutant (128 NaN mismatches) | budget: fp32 eps=5.96e-08, K=65, stochastic growth sqrt(K)=8.06, safety=4 -> rel=1.92e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=1.92e-06 [crucible.oracles.tolerance.derive]'
+detect_shapes:
+- name: leading_empty_block_fp32
+  kwargs:
+    batch: 1
+    heads: 1
+    q_len: 4
+    head_dim: 32
+    n_ctx: 65
+    n_pad: 192
+    k_start: 64
+    block_n: 64
+    dtype: float32
+    noncontig: false
+decoy_shapes:
+- name: ctx1_fp32
+  kwargs:
+    batch: 1
+    heads: 1
+    q_len: 1
+    head_dim: 16
+    n_ctx: 1
+    n_pad: 1
+    k_start: 0
+    block_n: 64
+    dtype: float32
+    noncontig: false
+- name: zero_ctx_fp32
+  kwargs:
+    batch: 1
+    heads: 1
+    q_len: 4
+    head_dim: 32
+    n_ctx: 0
+    n_pad: 64
+    k_start: 0
+    block_n: 64
+    dtype: float32
+    noncontig: false
+- name: empty_block_fp32
+  kwargs:
+    batch: 1
+    heads: 1
+    q_len: 4
+    head_dim: 32
+    n_ctx: 1
+    n_pad: 128
+    k_start: 0
+    block_n: 64
+    dtype: float32
+    noncontig: false
+- name: ctx129_bf16
+  kwargs:
+    batch: 1
+    heads: 2
+    q_len: 8
+    head_dim: 32
+    n_ctx: 129
+    n_pad: 192
+    k_start: 0
+    block_n: 64
+    dtype: bfloat16
+    noncontig: false
+- name: ctx129_fp16
+  kwargs:
+    batch: 1
+    heads: 2
+    q_len: 8
+    head_dim: 32
+    n_ctx: 129
+    n_pad: 192
+    k_start: 0
+    block_n: 64
+    dtype: float16
+    noncontig: false
+- name: headdim_at_block_fp32
+  kwargs:
+    batch: 1
+    heads: 1
+    q_len: 4
+    head_dim: 64
+    n_ctx: 129
+    n_pad: 192
+    k_start: 0
+    block_n: 64
+    dtype: float32
+    noncontig: false
+- name: ctx127_fp32
+  kwargs:
+    batch: 1
+    heads: 2
+    q_len: 8
+    head_dim: 32
+    n_ctx: 127
+    n_pad: 128
+    k_start: 0
+    block_n: 64
+    dtype: float32
+    noncontig: false
+- name: noncontig_fp32
+  kwargs:
+    batch: 1
+    heads: 2
+    q_len: 8
+    head_dim: 32
+    n_ctx: 127
+    n_pad: 128
+    k_start: 0
+    block_n: 64
+    dtype: float32
+    noncontig: true
+- name: unaligned_window_fp32
+  kwargs:
+    batch: 1
+    heads: 2
+    q_len: 8
+    head_dim: 32
+    n_ctx: 127
+    n_pad: 256
+    k_start: 33
+    block_n: 64
+    dtype: float32
+    noncontig: false
+- name: ctx129_fp32
+  kwargs:
+    batch: 1
+    heads: 2
+    q_len: 8
+    head_dim: 32
+    n_ctx: 129
+    n_pad: 192
+    k_start: 0
+    block_n: 64
+    dtype: float32
+    noncontig: false
+- name: headdim_above_block_fp32
+  kwargs:
+    batch: 1
+    heads: 1
+    q_len: 4
+    head_dim: 128
+    n_ctx: 65
+    n_pad: 128
+    k_start: 0
+    block_n: 64
+    dtype: float32
+    noncontig: false
+- name: ctx1023_bf16
+  kwargs:
+    batch: 1
+    heads: 1
+    q_len: 4
+    head_dim: 32
+    n_ctx: 1023
+    n_pad: 1024
+    k_start: 0
+    block_n: 64
+    dtype: bfloat16
+    noncontig: false
+- name: ctx128_fp32
+  kwargs:
+    batch: 2
+    heads: 2
+    q_len: 8
+    head_dim: 32
+    n_ctx: 128
+    n_pad: 128
+    k_start: 0
+    block_n: 64
+    dtype: float32
+    noncontig: false
+- name: ctx1023_fp32
+  kwargs:
+    batch: 1
+    heads: 1
+    q_len: 4
+    head_dim: 32
+    n_ctx: 1023
+    n_pad: 1024
+    k_start: 0
+    block_n: 64
+    dtype: float32
+    noncontig: false
+- name: ctx4096_fp32
+  kwargs:
+    batch: 1
+    heads: 1
+    q_len: 2
+    head_dim: 16
+    n_ctx: 4096
+    n_pad: 4096
+    k_start: 0
+    block_n: 64
+    dtype: float32
+    noncontig: false
+prompt: "# Debugging task: `blocked_attention_fwd`\n\nThe `blocked_attention_fwd` implementation below is a triton routine that is believed to be\ncorrect. It is not. On at least one input it silently disagrees with an\nindependent reference implementation, and the disagreement is not visible on the\nshapes it was checked on.\n\n## Implementation under test\n\n```python\n\"\"\"Blocked attention forward: known-good baseline.\"\"\"\nfrom __future__ import annotations\nimport torch\n\ndef blocked_attention_fwd(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, n_ctx: int, k_start: int=0, block_n: int=64) -> torch.Tensor:\n    \"\"\"Attention forward over a window of a padded KV cache.\n\n    ``q`` is ``(B, H, M, D)``; ``k`` and ``v`` are ``(B, H, N_pad, D)``. Only\n    cache entries ``[k_start, k_start + n_ctx)`` carry data -- the rest is\n    eviction slack ahead of the window and allocation slack behind it, and\n    neither may influence the result.\n    \"\"\"\n    head_dim = int(q.shape[-1])\n    n_pad = int(k.shape[-2])\n    scale = float(head_dim) ** (-0.5)\n    lo = int(k_start)\n    hi = lo + int(n_ctx)\n    out = torch.empty(q.shape, dtype=q.dtype, device=q.device)\n    if int(n_ctx) <= 0:\n        out.zero_()\n        return out\n    lead = tuple(q.shape[:-1])\n    acc = torch.zeros(lead + (head_dim,), dtype=torch.float32, device=q.device)\n    m_run = torch.full(lead, float('-inf'), dtype=torch.float32, device=q.device)\n    l_run = torch.zeros(lead, dtype=torch.float32, device=q.device)\n    q_f32 = q.to(torch.float32)\n    n_blocks = (n_pad + int(block_n) - 1) // int(block_n)\n    for blk in range(n_blocks):\n        start = blk * int(block_n)\n        offs = start + torch.arange(int(block_n), device=q.device)\n        mask = (offs >= lo) & (offs < hi)\n        n_valid = int(mask.sum())\n        gather = offs.clamp_max(n_pad - 1)\n        k_blk = k.index_select(-2, gather).to(torch.float32)\n        v_blk = v.index_select(-2, gather).to(torch.float32)\n        k_blk_t = k_blk.transpose(-1, -2).contiguous()\n        s = q_f32 @ k_blk_t * scale\n        s = torch.where(mask, s, torch.full_like(s, float('-inf')))\n        blk_max = s.amax(dim=-1)\n        m_prev = m_run.clone()\n        torch.maximum(m_run, blk_max, out=m_run)\n        alpha = torch.exp(m_prev - m_run)\n        lane = offs - start\n        prob = torch.zeros(tuple(s.shape[:-1]) + (int(block_n),), dtype=torch.float32, device=q.device)\n        prob[..., lane] = torch.where(mask, torch.exp(s - m_run.unsqueeze(-1)), torch.zeros_like(s))\n        l_run.mul_(alpha)\n        l_run.add_(prob.sum(dim=-1))\n        acc.mul_(alpha.unsqueeze(-1))\n        acc.add_(prob @ v_blk)\n    denom = torch.where(l_run > 0, l_run, torch.ones_like(l_run))\n    out.copy_((acc / denom.unsqueeze(-1)).to(out.dtype))\n    return out\n```\n\n## Shapes it was checked on\n\nEach of these was executed and agreed with an independent reference to within the derived error budget, so none of them exposes the defect:\n\n- `ctx1_fp32`: batch=1, block_n=64, dtype='float32', head_dim=16, heads=1, k_start=0, n_ctx=1, n_pad=1, noncontig=False, q_len=1\n- `zero_ctx_fp32`: batch=1, block_n=64, dtype='float32', head_dim=32, heads=1, k_start=0, n_ctx=0, n_pad=64, noncontig=False, q_len=4\n- `empty_block_fp32`: batch=1, block_n=64, dtype='float32', head_dim=32, heads=1, k_start=0, n_ctx=1, n_pad=128, noncontig=False, q_len=4\n- `ctx129_bf16`: batch=1, block_n=64, dtype='bfloat16', head_dim=32, heads=2, k_start=0, n_ctx=129, n_pad=192, noncontig=False, q_len=8\n- `ctx129_fp16`: batch=1, block_n=64, dtype='float16', head_dim=32, heads=2, k_start=0, n_ctx=129, n_pad=192, noncontig=False, q_len=8\n- `headdim_at_block_fp32`: batch=1, block_n=64, dtype='float32', head_dim=64, heads=1, k_start=0, n_ctx=129, n_pad=192, noncontig=False, q_len=4\n- `ctx127_fp32`: batch=1, block_n=64, dtype='float32', head_dim=32, heads=2, k_start=0, n_ctx=127, n_pad=128, noncontig=False, q_len=8\n- `noncontig_fp32`: batch=1, block_n=64, dtype='float32', head_dim=32, heads=2, k_start=0, n_ctx=127, n_pad=128, noncontig=True, q_len=8\n- `unaligned_window_fp32`: batch=1, block_n=64, dtype='float32', head_dim=32, heads=2, k_start=33, n_ctx=127, n_pad=256, noncontig=False, q_len=8\n- `ctx129_fp32`: batch=1, block_n=64, dtype='float32', head_dim=32, heads=2, k_start=0, n_ctx=129, n_pad=192, noncontig=False, q_len=8\n- `headdim_above_block_fp32`: batch=1, block_n=64, dtype='float32', head_dim=128, heads=1, k_start=0, n_ctx=65, n_pad=128, noncontig=False, q_len=4\n- `ctx1023_bf16`: batch=1, block_n=64, dtype='bfloat16', head_dim=32, heads=1, k_start=0, n_ctx=1023, n_pad=1024, noncontig=False, q_len=4\n- `ctx128_fp32`: batch=2, block_n=64, dtype='float32', head_dim=32, heads=2, k_start=0, n_ctx=128, n_pad=128, noncontig=False, q_len=8\n- `ctx1023_fp32`: batch=1, block_n=64, dtype='float32', head_dim=32, heads=1, k_start=0, n_ctx=1023, n_pad=1024, noncontig=False, q_len=4\n- `ctx4096_fp32`: batch=1, block_n=64, dtype='float32', head_dim=16, heads=1, k_start=0, n_ctx=4096, n_pad=4096, noncontig=False, q_len=2\n\n## What to produce\n\n1. **Root cause.** Which expression is wrong, and what it does wrong.\n2. **Trigger class.** What property an input must have for the defect to show,\n   and why every shape above lacks that property.\n3. **Fix.** A corrected `blocked_attention_fwd` with the same name and the same signature.\n\n## Rules\n\n- Pure PyTorch. Do not import or call: `torch.nn.functional.scaled_dot_product_attention`, `torch.scaled_dot_product_attention`, `torch._C._nn.scaled_dot_product_attention`, `torch.ops.aten.scaled_dot_product_attention`, `torch.ops.aten._scaled_dot_product_flash_attention`, `torch.nn.MultiheadAttention`, `torch.nn.functional.multi_head_attention_forward`, `torch.nn.functional.softmax`, `torch.softmax`, `torch.Tensor.softmax`, `torch.nn.Softmax`, `torch.logsumexp`, `torch.einsum`, `crucible.seeds.attention.attention_reference`, `crucible.seeds.attention.blocked_attention_fwd`.\n- Do not special-case shapes, memoise inputs, or return a precomputed answer.\n- Your submission is executed on withheld shapes chosen specifically to expose\n  this defect, with freshly seeded inputs. Reproducing the behaviour on the\n  shapes above is necessary and not sufficient.\n"
+oracles:
+- O1
+- O3
+- O4
+rubric:
+  criteria:
+  - id: numerics_within_budget
+    weight: 4.0
+    anchors:
+      '0': the fixed implementation still exceeds the derived error budget
+      '3': within the budget on every graded shape
+      '5': within the budget with margin, on the witness shape included
+    auto_probe: oracle.O1.max_rel_err
+    probe_thresholds:
+    - - 1.922192036699903e-06
+      - 5
+    - - 0.00019221920366999028
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  - id: witness_shape_fixed
+    weight: 3.0
+    anchors:
+      '0': the withheld shape still reproduces the defect
+      '3': the withheld shape is fixed
+      '5': the withheld shape is fixed and the absolute error is at reference level
+    auto_probe: oracle.O1.max_abs_err
+    probe_thresholds:
+    - - 1.0e-06
+      - 5
+    - - 0.001
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  - id: root_cause_explanation
+    weight: 2.0
+    anchors:
+      '0': no mechanism given, or the wrong expression blamed
+      '3': names the responsible expression
+      '5': names the expression and derives why the given shapes hide it
+    auto_probe: null
+    probe_thresholds: []
+    machine_probed: false
+  - id: fix_minimality
+    weight: 1.0
+    anchors:
+      '0': rewrites unrelated code or changes the interface
+      '3': a local fix with some incidental change
+      '5': the minimal edit that removes the defect
+    auto_probe: null
+    probe_thresholds: []
+    machine_probed: false
+  version: '1.0'
+calibration: null
+provenance:
+  generator: crucible.mutate.engine
+  generator_version: '1.0'
+  host: Archana-PC
+  python: 3.11.5
+  utc: '2026-08-21T17:00:57+00:00'
+  device: cuda
+  capabilities: torch 2.6.0+cu124 on Windows-10-10.0.26200-SP0; NVIDIA T1000 8GB; cuda=True triton=False ncu=yes gloo=True nccl=False inductor(cpu=False,cuda=False)
+  seed_module: crucible.seeds.attention
+  seed_tiers:
+  - T2
+  - T3
+  - T4
+  - T5
+  class_tier: T2
+  site:
+    lineno: 33
+    col_offset: 8
+    node_type: If
+    ordinal: 0
+    label: 'if n_valid == 0: continue'
+    meta:
+      test: n_valid == 0
+      guarded_exit: Continue
+  seed_source_sha256: d7ef12a9792ad6dddcd959662aa4b287716f75abd59ac2ffa143c743742dc6d6
+  canonical_baseline_sha256: 58f101471a67e45bad309c1b4c6e120f09f07bf57c1470bb05325a44a504c99c
+  mutant_sha256: 612373855372aa10eea1dd01daeeb7cc44be26fc129a4cc72bbd029654016f90
+  shapes_evaluated: 16
+  shape_outcomes:
+  - shape: ctx1_fp32
+    kwargs:
+      batch: 1
+      heads: 1
+      q_len: 1
+      head_dim: 16
+      n_ctx: 1
+      n_pad: 1
+      k_start: 0
+      block_n: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.063
+  - shape: zero_ctx_fp32
+    kwargs:
+      batch: 1
+      heads: 1
+      q_len: 4
+      head_dim: 32
+      n_ctx: 0
+      n_pad: 64
+      k_start: 0
+      block_n: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.6419
+  - shape: empty_block_fp32
+    kwargs:
+      batch: 1
+      heads: 1
+      q_len: 4
+      head_dim: 32
+      n_ctx: 1
+      n_pad: 128
+      k_start: 0
+      block_n: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.0244
+  - shape: leading_empty_block_fp32
+    kwargs:
+      batch: 1
+      heads: 1
+      q_len: 4
+      head_dim: 32
+      n_ctx: 65
+      n_pad: 192
+      k_start: 64
+      block_n: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 1.922192036699903e-06
+    detail: 'output ''out'': 128 element(s) finite in the baseline and non-finite in the mutant (128 NaN mismatches)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.3197
+  - shape: ctx129_bf16
+    kwargs:
+      batch: 1
+      heads: 2
+      q_len: 8
+      head_dim: 32
+      n_ctx: 129
+      n_pad: 192
+      k_start: 0
+      block_n: 64
+      dtype: bfloat16
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 0.17746588580625855
+    detail: 'baseline and mutant agree within the derived budget (rtol=0.177); bf16 eps=3.91e-03, K=129, stochastic growth sqrt(K)=11.36, safety=4 -> rel=1.77e-01; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=1.77e-01'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.3081
+  - shape: ctx129_fp16
+    kwargs:
+      batch: 1
+      heads: 2
+      q_len: 8
+      head_dim: 32
+      n_ctx: 129
+      n_pad: 192
+      k_start: 0
+      block_n: 64
+      dtype: float16
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 0.02218323572578232
+    detail: 'baseline and mutant agree within the derived budget (rtol=0.0222); fp16 eps=4.88e-04, K=129, stochastic growth sqrt(K)=11.36, safety=4 -> rel=2.22e-02; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.22e-02'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1397
+  - shape: headdim_at_block_fp32
+    kwargs:
+      batch: 1
+      heads: 1
+      q_len: 4
+      head_dim: 64
+      n_ctx: 129
+      n_pad: 192
+      k_start: 0
+      block_n: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.707914517307412e-06
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.71e-06); fp32 eps=5.96e-08, K=129, stochastic growth sqrt(K)=11.36, safety=4 -> rel=2.71e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.71e-06'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.0791
+  - shape: ctx127_fp32
+    kwargs:
+      batch: 1
+      heads: 2
+      q_len: 8
+      head_dim: 32
+      n_ctx: 127
+      n_pad: 128
+      k_start: 0
+      block_n: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.6868409322702036e-06
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.69e-06); fp32 eps=5.96e-08, K=127, stochastic growth sqrt(K)=11.27, safety=4 -> rel=2.69e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.69e-06'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.152
+  - shape: noncontig_fp32
+    kwargs:
+      batch: 1
+      heads: 2
+      q_len: 8
+      head_dim: 32
+      n_ctx: 127
+      n_pad: 128
+      k_start: 0
+      block_n: 64
+      dtype: float32
+      noncontig: true
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.6868409322702036e-06
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.69e-06); fp32 eps=5.96e-08, K=127, stochastic growth sqrt(K)=11.27, safety=4 -> rel=2.69e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.69e-06'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.0801
+  - shape: unaligned_window_fp32
+    kwargs:
+      batch: 1
+      heads: 2
+      q_len: 8
+      head_dim: 32
+      n_ctx: 127
+      n_pad: 256
+      k_start: 33
+      block_n: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.6868409322702036e-06
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.69e-06); fp32 eps=5.96e-08, K=127, stochastic growth sqrt(K)=11.27, safety=4 -> rel=2.69e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.69e-06'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.064
+  - shape: ctx129_fp32
+    kwargs:
+      batch: 1
+      heads: 2
+      q_len: 8
+      head_dim: 32
+      n_ctx: 129
+      n_pad: 192
+      k_start: 0
+      block_n: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.707914517307412e-06
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.71e-06); fp32 eps=5.96e-08, K=129, stochastic growth sqrt(K)=11.36, safety=4 -> rel=2.71e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.71e-06'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.2137
+  - shape: headdim_above_block_fp32
+    kwargs:
+      batch: 1
+      heads: 1
+      q_len: 4
+      head_dim: 128
+      n_ctx: 65
+      n_pad: 128
+      k_start: 0
+      block_n: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 1.922192036699903e-06
+    detail: 'baseline and mutant agree within the derived budget (rtol=1.92e-06); fp32 eps=5.96e-08, K=65, stochastic growth sqrt(K)=8.06, safety=4 -> rel=1.92e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=1.92e-06'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1005
+  - shape: ctx1023_bf16
+    kwargs:
+      batch: 1
+      heads: 1
+      q_len: 4
+      head_dim: 32
+      n_ctx: 1023
+      n_pad: 1024
+      k_start: 0
+      block_n: 64
+      dtype: bfloat16
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 0.49975579974123363
+    detail: 'baseline and mutant agree within the derived budget (rtol=0.5); bf16 eps=3.91e-03, K=1023, stochastic growth sqrt(K)=31.98, safety=4 -> rel=5.00e-01; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=5.00e-01'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.178
+  - shape: ctx128_fp32
+    kwargs:
+      batch: 2
+      heads: 2
+      q_len: 8
+      head_dim: 32
+      n_ctx: 128
+      n_pad: 128
+      k_start: 0
+      block_n: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.6973983046972182e-06
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.7e-06); fp32 eps=5.96e-08, K=128, stochastic growth sqrt(K)=11.31, safety=4 -> rel=2.70e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.70e-06'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1611
+  - shape: ctx1023_fp32
+    kwargs:
+      batch: 1
+      heads: 1
+      q_len: 4
+      head_dim: 32
+      n_ctx: 1023
+      n_pad: 1024
+      k_start: 0
+      block_n: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 7.625668331012476e-06
+    detail: 'baseline and mutant agree within the derived budget (rtol=7.63e-06); fp32 eps=5.96e-08, K=1023, stochastic growth sqrt(K)=31.98, safety=4 -> rel=7.63e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=7.63e-06'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.2474
+  - shape: ctx4096_fp32
+    kwargs:
+      batch: 1
+      heads: 1
+      q_len: 2
+      head_dim: 16
+      n_ctx: 4096
+      n_pad: 4096
+      k_start: 0
+      block_n: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 1.52587890625e-05
+    detail: 'baseline and mutant agree within the derived budget (rtol=1.53e-05); fp32 eps=5.96e-08, K=4096, stochastic growth sqrt(K)=64.00, safety=4 -> rel=1.53e-05; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=1.53e-05'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.2145
+  tolerance:
+    rel: 1.922192036699903e-06
+    abs: 1.922192036699903e-06
+    dtype: fp32
+    accum_depth: 65
+    mode: stochastic
+    formula: 'fp32 eps=5.96e-08, K=65, stochastic growth sqrt(K)=8.06, safety=4 -> rel=1.92e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=1.92e-06'
+    source: crucible.oracles.tolerance.derive

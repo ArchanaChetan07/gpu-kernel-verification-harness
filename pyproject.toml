@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "crucible"
+version = "0.1.0"
+description = "Execution-grounded task foundry for ML-systems training data"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+authors = [{ name = "CRUCIBLE" }]
+dependencies = [
+    "torch",
+    "numpy",
+    "scipy",
+    "pydantic>=2",
+    "pyyaml",
+    "typer",
+    "rich",
+    "jinja2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+crucible = "crucible.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["crucible*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]

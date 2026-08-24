@@ -1,0 +1,587 @@
+task_id: mut-tiled-missing_barrier-3742
+schema_version: '1.0'
+created_utc: '2026-08-21T17:12:05+00:00'
+seed_source:
+  seed_id: matmul.tiled
+  module: crucible.seeds.matmul
+  entry: tiled_matmul
+  content_sha256: 7ed8a71f7194c3446d545fc487ca6fd697f353dc4f659e3ff81bfcea9adf8d30
+domain: cuda
+failure_tier: T5
+mutation:
+  cls: missing_barrier
+  site: matmul.tiled:Call@47:27#0
+  params:
+    buffer: acc
+    copy_call: acc.clone()
+    inside_loop: true
+    site: Call@47:27#0
+  description: Remove the explicit copy that separates a read of a buffer from a write to the same buffer in the next iteration, turning it into an alias.
+baseline_code: "\"\"\"Tiled matmul over a padded K axis: known-good baseline.\"\"\"\nfrom __future__ import annotations\nimport torch\n\ndef tiled_matmul(a: torch.Tensor, b: torch.Tensor, k_valid: int, block_m: int=32, block_n: int=32, block_k: int=64) -> torch.Tensor:\n    \"\"\"``a[:, :k_valid] @ b[:k_valid, :]`` computed tile by tile.\n\n    ``a`` is ``(M, K_pad)`` and ``b`` is ``(K_pad, N)``. Rows of ``b`` and\n    columns of ``a`` at or beyond ``k_valid`` are allocation slack and must not\n    reach the accumulator.\n    \"\"\"\n    m_size = int(a.shape[0])\n    k_pad = int(a.shape[1])\n    n_size = int(b.shape[1])\n    k = int(k_valid)\n    bm, bn, bk = (int(block_m), int(block_n), int(block_k))\n    out = torch.empty((m_size, n_size), dtype=a.dtype, device=a.device)\n    if k <= 0 or m_size == 0 or n_size == 0:\n        out.zero_()\n        return out\n    n_kblocks = (k_pad + bk - 1) // bk\n    for m0 in range(0, m_size, bm):\n        m_hi = min(m0 + bm, m_size)\n        for n0 in range(0, n_size, bn):\n            n_hi = min(n0 + bn, n_size)\n            acc = torch.zeros((m_hi - m0, n_hi - n0), dtype=torch.float32, device=a.device)\n            comp = torch.zeros((m_hi - m0, n_hi - n0), dtype=torch.float32, device=a.device)\n            for kb in range(n_kblocks):\n                k0 = kb * bk\n                offs_k = k0 + torch.arange(bk, device=a.device)\n                mask_k = offs_k < k\n                if int(mask_k.sum()) == 0:\n                    continue\n                a_view = a[m0:m_hi, k0:k0 + bk]\n                b_view = b[k0:k0 + bk, n0:n_hi]\n                width = int(a_view.shape[1])\n                lane = torch.arange(width, device=a.device)\n                lane_mask = mask_k.to(torch.float32)\n                a_buf = torch.zeros((m_hi - m0, bk), dtype=torch.float32, device=a.device)\n                b_buf = torch.zeros((bk, n_hi - n0), dtype=torch.float32, device=a.device)\n                a_buf[:, lane] = a_view.to(torch.float32).contiguous()\n                b_buf[lane, :] = b_view.to(torch.float32).contiguous()\n                a_buf.mul_(lane_mask.unsqueeze(0))\n                b_buf.mul_(lane_mask.unsqueeze(1))\n                part = a_buf @ b_buf\n                y = part - comp\n                acc_prev = acc.clone()\n                acc.add_(y)\n                comp = acc - acc_prev - y\n            out[m0:m_hi, n0:n_hi] = acc.to(out.dtype)\n    return out\n"
+mutant_code: "\"\"\"Tiled matmul over a padded K axis: known-good baseline.\"\"\"\nfrom __future__ import annotations\nimport torch\n\ndef tiled_matmul(a: torch.Tensor, b: torch.Tensor, k_valid: int, block_m: int=32, block_n: int=32, block_k: int=64) -> torch.Tensor:\n    \"\"\"``a[:, :k_valid] @ b[:k_valid, :]`` computed tile by tile.\n\n    ``a`` is ``(M, K_pad)`` and ``b`` is ``(K_pad, N)``. Rows of ``b`` and\n    columns of ``a`` at or beyond ``k_valid`` are allocation slack and must not\n    reach the accumulator.\n    \"\"\"\n    m_size = int(a.shape[0])\n    k_pad = int(a.shape[1])\n    n_size = int(b.shape[1])\n    k = int(k_valid)\n    bm, bn, bk = (int(block_m), int(block_n), int(block_k))\n    out = torch.empty((m_size, n_size), dtype=a.dtype, device=a.device)\n    if k <= 0 or m_size == 0 or n_size == 0:\n        out.zero_()\n        return out\n    n_kblocks = (k_pad + bk - 1) // bk\n    for m0 in range(0, m_size, bm):\n        m_hi = min(m0 + bm, m_size)\n        for n0 in range(0, n_size, bn):\n            n_hi = min(n0 + bn, n_size)\n            acc = torch.zeros((m_hi - m0, n_hi - n0), dtype=torch.float32, device=a.device)\n            comp = torch.zeros((m_hi - m0, n_hi - n0), dtype=torch.float32, device=a.device)\n            for kb in range(n_kblocks):\n                k0 = kb * bk\n                offs_k = k0 + torch.arange(bk, device=a.device)\n                mask_k = offs_k < k\n                if int(mask_k.sum()) == 0:\n                    continue\n                a_view = a[m0:m_hi, k0:k0 + bk]\n                b_view = b[k0:k0 + bk, n0:n_hi]\n                width = int(a_view.shape[1])\n                lane = torch.arange(width, device=a.device)\n                lane_mask = mask_k.to(torch.float32)\n                a_buf = torch.zeros((m_hi - m0, bk), dtype=torch.float32, device=a.device)\n                b_buf = torch.zeros((bk, n_hi - n0), dtype=torch.float32, device=a.device)\n                a_buf[:, lane] = a_view.to(torch.float32).contiguous()\n                b_buf[lane, :] = b_view.to(torch.float32).contiguous()\n                a_buf.mul_(lane_mask.unsqueeze(0))\n                b_buf.mul_(lane_mask.unsqueeze(1))\n                part = a_buf @ b_buf\n                y = part - comp\n                acc_prev = acc\n                acc.add_(y)\n                comp = acc - acc_prev - y\n            out[m0:m_hi, n0:n_hi] = acc.to(out.dtype)\n    return out\n"
+ground_truth_diff: "--- a/tiled_matmul.py (mutant)\n+++ b/tiled_matmul.py (baseline)\n@@ -44,7 +44,7 @@\n                 b_buf.mul_(lane_mask.unsqueeze(1))\n                 part = a_buf @ b_buf\n                 y = part - comp\n-                acc_prev = acc\n+                acc_prev = acc.clone()\n                 acc.add_(y)\n                 comp = acc - acc_prev - y\n             out[m0:m_hi, n0:n_hi] = acc.to(out.dtype)\n"
+witness:
+  shape:
+    name: k129_bf16
+    kwargs:
+      m: 8
+      n: 8
+      k_valid: 129
+      k_pad: 192
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: bfloat16
+      noncontig: false
+  max_abs_err: 46.625
+  max_rel_err: 32.53623188405797
+  tolerance: 0.17746588580625855
+  baseline_checksum: 41eceb5cd0eaafb75dbcf4099c6928614db5c0cf2e3cfbf16eee65bd4b7d3d2e
+  mutant_checksum: 05672a97961a54b59b768ef9ca48d806c21310e252fcfefca1358fe385e1d802
+  kind: numeric
+  detail: 'output ''out'': 45/64 elements outside the budget (max_abs=46.625, max_rel=32.5362, rtol=0.177) | budget: bf16 eps=3.91e-03, K=129, stochastic growth sqrt(K)=11.36, safety=4 -> rel=1.77e-01; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=1.77e-01 [crucible.oracles.tolerance.derive]'
+detect_shapes:
+- name: k129_bf16
+  kwargs:
+    m: 8
+    n: 8
+    k_valid: 129
+    k_pad: 192
+    block_m: 32
+    block_n: 32
+    block_k: 64
+    dtype: bfloat16
+    noncontig: false
+- name: k129_fp16
+  kwargs:
+    m: 8
+    n: 8
+    k_valid: 129
+    k_pad: 192
+    block_m: 32
+    block_n: 32
+    block_k: 64
+    dtype: float16
+    noncontig: false
+- name: k127_fp32
+  kwargs:
+    m: 8
+    n: 8
+    k_valid: 127
+    k_pad: 128
+    block_m: 32
+    block_n: 32
+    block_k: 64
+    dtype: float32
+    noncontig: false
+- name: noncontig_fp32
+  kwargs:
+    m: 8
+    n: 8
+    k_valid: 127
+    k_pad: 128
+    block_m: 32
+    block_n: 32
+    block_k: 64
+    dtype: float32
+    noncontig: true
+- name: k128_fp32
+  kwargs:
+    m: 8
+    n: 8
+    k_valid: 128
+    k_pad: 128
+    block_m: 32
+    block_n: 32
+    block_k: 64
+    dtype: float32
+    noncontig: false
+- name: k129_fp32
+  kwargs:
+    m: 8
+    n: 8
+    k_valid: 129
+    k_pad: 192
+    block_m: 32
+    block_n: 32
+    block_k: 64
+    dtype: float32
+    noncontig: false
+- name: k1023_bf16
+  kwargs:
+    m: 4
+    n: 4
+    k_valid: 1023
+    k_pad: 1024
+    block_m: 32
+    block_n: 32
+    block_k: 64
+    dtype: bfloat16
+    noncontig: false
+- name: tile_at_block_fp32
+  kwargs:
+    m: 32
+    n: 32
+    k_valid: 65
+    k_pad: 128
+    block_m: 32
+    block_n: 32
+    block_k: 64
+    dtype: float32
+    noncontig: false
+- name: tile_above_block_fp32
+  kwargs:
+    m: 33
+    n: 33
+    k_valid: 65
+    k_pad: 128
+    block_m: 32
+    block_n: 32
+    block_k: 64
+    dtype: float32
+    noncontig: false
+- name: k1023_fp32
+  kwargs:
+    m: 4
+    n: 4
+    k_valid: 1023
+    k_pad: 1024
+    block_m: 32
+    block_n: 32
+    block_k: 64
+    dtype: float32
+    noncontig: false
+- name: k4096_fp32
+  kwargs:
+    m: 4
+    n: 4
+    k_valid: 4096
+    k_pad: 4096
+    block_m: 32
+    block_n: 32
+    block_k: 64
+    dtype: float32
+    noncontig: false
+decoy_shapes:
+- name: k1_fp32
+  kwargs:
+    m: 1
+    n: 1
+    k_valid: 1
+    k_pad: 1
+    block_m: 32
+    block_n: 32
+    block_k: 64
+    dtype: float32
+    noncontig: false
+- name: zero_k_fp32
+  kwargs:
+    m: 8
+    n: 8
+    k_valid: 0
+    k_pad: 64
+    block_m: 32
+    block_n: 32
+    block_k: 64
+    dtype: float32
+    noncontig: false
+- name: empty_block_fp32
+  kwargs:
+    m: 8
+    n: 8
+    k_valid: 1
+    k_pad: 128
+    block_m: 32
+    block_n: 32
+    block_k: 64
+    dtype: float32
+    noncontig: false
+prompt: "# Debugging task: `tiled_matmul`\n\nThe `tiled_matmul` implementation below is a cuda routine that is believed to be\ncorrect. It is not. On at least one input it silently disagrees with an\nindependent reference implementation, and the disagreement is not visible on the\nshapes it was checked on.\n\n## Implementation under test\n\n```python\n\"\"\"Tiled matmul over a padded K axis: known-good baseline.\"\"\"\nfrom __future__ import annotations\nimport torch\n\ndef tiled_matmul(a: torch.Tensor, b: torch.Tensor, k_valid: int, block_m: int=32, block_n: int=32, block_k: int=64) -> torch.Tensor:\n    \"\"\"``a[:, :k_valid] @ b[:k_valid, :]`` computed tile by tile.\n\n    ``a`` is ``(M, K_pad)`` and ``b`` is ``(K_pad, N)``. Rows of ``b`` and\n    columns of ``a`` at or beyond ``k_valid`` are allocation slack and must not\n    reach the accumulator.\n    \"\"\"\n    m_size = int(a.shape[0])\n    k_pad = int(a.shape[1])\n    n_size = int(b.shape[1])\n    k = int(k_valid)\n    bm, bn, bk = (int(block_m), int(block_n), int(block_k))\n    out = torch.empty((m_size, n_size), dtype=a.dtype, device=a.device)\n    if k <= 0 or m_size == 0 or n_size == 0:\n        out.zero_()\n        return out\n    n_kblocks = (k_pad + bk - 1) // bk\n    for m0 in range(0, m_size, bm):\n        m_hi = min(m0 + bm, m_size)\n        for n0 in range(0, n_size, bn):\n            n_hi = min(n0 + bn, n_size)\n            acc = torch.zeros((m_hi - m0, n_hi - n0), dtype=torch.float32, device=a.device)\n            comp = torch.zeros((m_hi - m0, n_hi - n0), dtype=torch.float32, device=a.device)\n            for kb in range(n_kblocks):\n                k0 = kb * bk\n                offs_k = k0 + torch.arange(bk, device=a.device)\n                mask_k = offs_k < k\n                if int(mask_k.sum()) == 0:\n                    continue\n                a_view = a[m0:m_hi, k0:k0 + bk]\n                b_view = b[k0:k0 + bk, n0:n_hi]\n                width = int(a_view.shape[1])\n                lane = torch.arange(width, device=a.device)\n                lane_mask = mask_k.to(torch.float32)\n                a_buf = torch.zeros((m_hi - m0, bk), dtype=torch.float32, device=a.device)\n                b_buf = torch.zeros((bk, n_hi - n0), dtype=torch.float32, device=a.device)\n                a_buf[:, lane] = a_view.to(torch.float32).contiguous()\n                b_buf[lane, :] = b_view.to(torch.float32).contiguous()\n                a_buf.mul_(lane_mask.unsqueeze(0))\n                b_buf.mul_(lane_mask.unsqueeze(1))\n                part = a_buf @ b_buf\n                y = part - comp\n                acc_prev = acc\n                acc.add_(y)\n                comp = acc - acc_prev - y\n            out[m0:m_hi, n0:n_hi] = acc.to(out.dtype)\n    return out\n```\n\n## Shapes it was checked on\n\nEach of these was executed and agreed with an independent reference to within the derived error budget, so none of them exposes the defect:\n\n- `k1_fp32`: block_k=64, block_m=32, block_n=32, dtype='float32', k_pad=1, k_valid=1, m=1, n=1, noncontig=False\n- `zero_k_fp32`: block_k=64, block_m=32, block_n=32, dtype='float32', k_pad=64, k_valid=0, m=8, n=8, noncontig=False\n- `empty_block_fp32`: block_k=64, block_m=32, block_n=32, dtype='float32', k_pad=128, k_valid=1, m=8, n=8, noncontig=False\n\n## What to produce\n\n1. **Root cause.** Which expression is wrong, and what it does wrong.\n2. **Trigger class.** What property an input must have for the defect to show,\n   and why every shape above lacks that property.\n3. **Fix.** A corrected `tiled_matmul` with the same name and the same signature.\n\n## Rules\n\n- Pure PyTorch. Do not import or call: `torch.matmul`, `torch.mm`, `torch.bmm`, `torch.addmm`, `torch.addbmm`, `torch.baddbmm`, `torch.einsum`, `torch.tensordot`, `torch.inner`, `torch.Tensor.matmul`, `torch.Tensor.mm`, `torch.nn.functional.linear`, `torch.nn.Linear`, `torch.ops.aten.mm`, `torch.ops.aten.addmm`, `numpy.matmul`, `numpy.dot`, `crucible.seeds.matmul.matmul_reference`, `crucible.seeds.matmul.tiled_matmul`.\n- Do not special-case shapes, memoise inputs, or return a precomputed answer.\n- Your submission is executed on withheld shapes chosen specifically to expose\n  this defect, with freshly seeded inputs. Reproducing the behaviour on the\n  shapes above is necessary and not sufficient.\n"
+oracles:
+- O1
+- O3
+- O4
+rubric:
+  criteria:
+  - id: numerics_within_budget
+    weight: 4.0
+    anchors:
+      '0': the fixed implementation still exceeds the derived error budget
+      '3': within the budget on every graded shape
+      '5': within the budget with margin, on the witness shape included
+    auto_probe: oracle.O1.max_rel_err
+    probe_thresholds:
+    - - 0.17746588580625855
+      - 5
+    - - 17.746588580625854
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  - id: witness_shape_fixed
+    weight: 3.0
+    anchors:
+      '0': the withheld shape still reproduces the defect
+      '3': the withheld shape is fixed
+      '5': the withheld shape is fixed and the absolute error is at reference level
+    auto_probe: oracle.O1.max_abs_err
+    probe_thresholds:
+    - - 0.046625
+      - 5
+    - - 4.6625000000000005
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  - id: root_cause_explanation
+    weight: 2.0
+    anchors:
+      '0': no mechanism given, or the wrong expression blamed
+      '3': names the responsible expression
+      '5': names the expression and derives why the given shapes hide it
+    auto_probe: null
+    probe_thresholds: []
+    machine_probed: false
+  - id: fix_minimality
+    weight: 1.0
+    anchors:
+      '0': rewrites unrelated code or changes the interface
+      '3': a local fix with some incidental change
+      '5': the minimal edit that removes the defect
+    auto_probe: null
+    probe_thresholds: []
+    machine_probed: false
+  version: '1.0'
+calibration: null
+provenance:
+  generator: crucible.mutate.engine
+  generator_version: '1.0'
+  host: Archana-PC
+  python: 3.11.5
+  utc: '2026-08-21T17:12:05+00:00'
+  device: cuda
+  capabilities: torch 2.6.0+cu124 on Windows-10-10.0.26200-SP0; NVIDIA T1000 8GB; cuda=True triton=False ncu=yes gloo=True nccl=False inductor(cpu=False,cuda=False)
+  seed_module: crucible.seeds.matmul
+  seed_tiers:
+  - T2
+  - T3
+  - T4
+  - T5
+  class_tier: T5
+  site:
+    lineno: 47
+    col_offset: 27
+    node_type: Call
+    ordinal: 0
+    label: acc.clone()
+    meta:
+      buffer: acc
+      copy_call: acc.clone()
+      inside_loop: true
+  seed_source_sha256: 7ed8a71f7194c3446d545fc487ca6fd697f353dc4f659e3ff81bfcea9adf8d30
+  canonical_baseline_sha256: 301c7c333a32fd859ceb09b6d301c0a3ae7aef0975c0dd3e42af651296d31b5c
+  mutant_sha256: 374243d8252c6aa4c2f6c2bc3f19f73fa323d7cc33cc015a305f3e885f367809
+  shapes_evaluated: 14
+  shape_outcomes:
+  - shape: k1_fp32
+    kwargs:
+      m: 1
+      n: 1
+      k_valid: 1
+      k_pad: 1
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1577
+  - shape: zero_k_fp32
+    kwargs:
+      m: 8
+      n: 8
+      k_valid: 0
+      k_pad: 64
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.7934
+  - shape: empty_block_fp32
+    kwargs:
+      m: 8
+      n: 8
+      k_valid: 1
+      k_pad: 128
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1455
+  - shape: k129_bf16
+    kwargs:
+      m: 8
+      n: 8
+      k_valid: 129
+      k_pad: 192
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: bfloat16
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 46.625
+    max_rel_err: 32.53623188405797
+    tolerance: 0.17746588580625855
+    detail: 'output ''out'': 45/64 elements outside the budget (max_abs=46.625, max_rel=32.5362, rtol=0.177)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.3998
+  - shape: k129_fp16
+    kwargs:
+      m: 8
+      n: 8
+      k_valid: 129
+      k_pad: 192
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: float16
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 46.859375
+    max_rel_err: 31.622144112478033
+    tolerance: 0.02218323572578232
+    detail: 'output ''out'': 62/64 elements outside the budget (max_abs=46.8594, max_rel=31.6221, rtol=0.0222)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.3216
+  - shape: k127_fp32
+    kwargs:
+      m: 8
+      n: 8
+      k_valid: 127
+      k_pad: 128
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 27.966073989868164
+    max_rel_err: 14.189764137225795
+    tolerance: 2.6868409322702036e-06
+    detail: 'output ''out'': 64/64 elements outside the budget (max_abs=27.9661, max_rel=14.1898, rtol=2.69e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.057
+  - shape: noncontig_fp32
+    kwargs:
+      m: 8
+      n: 8
+      k_valid: 127
+      k_pad: 128
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: float32
+      noncontig: true
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 24.44574737548828
+    max_rel_err: 47.808735562696874
+    tolerance: 2.6868409322702036e-06
+    detail: 'output ''out'': 64/64 elements outside the budget (max_abs=24.4457, max_rel=47.8087, rtol=2.69e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.0573
+  - shape: k128_fp32
+    kwargs:
+      m: 8
+      n: 8
+      k_valid: 128
+      k_pad: 128
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 27.966073989868164
+    max_rel_err: 22.50198522199407
+    tolerance: 2.6973983046972182e-06
+    detail: 'output ''out'': 64/64 elements outside the budget (max_abs=27.9661, max_rel=22.502, rtol=2.7e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1676
+  - shape: k129_fp32
+    kwargs:
+      m: 8
+      n: 8
+      k_valid: 129
+      k_pad: 192
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 46.859596252441406
+    max_rel_err: 31.54099545465444
+    tolerance: 2.707914517307412e-06
+    detail: 'output ''out'': 64/64 elements outside the budget (max_abs=46.8596, max_rel=31.541, rtol=2.71e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.0786
+  - shape: k1023_bf16
+    kwargs:
+      m: 4
+      n: 4
+      k_valid: 1023
+      k_pad: 1024
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: bfloat16
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 479.0
+    max_rel_err: 25.22680412371134
+    tolerance: 0.49975579974123363
+    detail: 'output ''out'': 11/16 elements outside the budget (max_abs=479, max_rel=25.2268, rtol=0.5)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1109
+  - shape: tile_at_block_fp32
+    kwargs:
+      m: 32
+      n: 32
+      k_valid: 65
+      k_pad: 128
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 33.55562973022461
+    max_rel_err: 51.77829455972273
+    tolerance: 1.922192036699903e-06
+    detail: 'output ''out'': 1024/1024 elements outside the budget (max_abs=33.5556, max_rel=51.7783, rtol=1.92e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1603
+  - shape: tile_above_block_fp32
+    kwargs:
+      m: 33
+      n: 33
+      k_valid: 65
+      k_pad: 128
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 27.87603759765625
+    max_rel_err: 173.64798197764924
+    tolerance: 1.922192036699903e-06
+    detail: 'output ''out'': 1089/1089 elements outside the budget (max_abs=27.876, max_rel=173.648, rtol=1.92e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.175
+  - shape: k1023_fp32
+    kwargs:
+      m: 4
+      n: 4
+      k_valid: 1023
+      k_pad: 1024
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 479.1142883300781
+    max_rel_err: 24.872109806828263
+    tolerance: 7.625668331012476e-06
+    detail: 'output ''out'': 16/16 elements outside the budget (max_abs=479.114, max_rel=24.8721, rtol=7.63e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.0417
+  - shape: k4096_fp32
+    kwargs:
+      m: 4
+      n: 4
+      k_valid: 4096
+      k_pad: 4096
+      block_m: 32
+      block_n: 32
+      block_k: 64
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 3949.6796264648438
+    max_rel_err: 100.56008623955796
+    tolerance: 1.52587890625e-05
+    detail: 'output ''out'': 16/16 elements outside the budget (max_abs=3949.68, max_rel=100.56, rtol=1.53e-05)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1214
+  tolerance:
+    rel: 0.17746588580625855
+    abs: 0.17746588580625855
+    dtype: bf16
+    accum_depth: 129
+    mode: stochastic
+    formula: 'bf16 eps=3.91e-03, K=129, stochastic growth sqrt(K)=11.36, safety=4 -> rel=1.77e-01; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=1.77e-01'
+    source: crucible.oracles.tolerance.derive
