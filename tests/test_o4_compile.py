@@ -328,7 +328,13 @@ def test_triton_lowering_does_not_invent_spill_counts_when_the_probe_fails(
 
     assert res.verdict == "SKIP", res.detail
     assert "import_triton" in res.detail
-    assert "libtriton" in res.detail
+    # The probe must name the real failure, but WHICH failure is platform
+    # specific: Windows has triton installed and its DLL fails to load
+    # ("libtriton"), a CPU-only Linux wheel has no triton at all
+    # ("No module named"). Asserting one machine's string made this test pass
+    # only where it was written -- the same unverified-elsewhere claim this
+    # project exists to catch. Assert the contract instead.
+    assert any(tok in res.detail for tok in ("libtriton", "No module named", "ImportError")), res.detail
     assert "kernels" not in res.evidence
 
 
@@ -421,12 +427,20 @@ def test_ir_diff_reports_absence_rather_than_an_empty_diff(
     )
     res = check_ir_diff(ctx)
 
-    assert res.verdict == "SKIP", res.detail
-    assert res.evidence["baseline_emitted"] is False
-    assert res.evidence["candidate_emitted"] is False
-    assert "ir_diff" not in res.evidence
-    assert "ir_identical" not in res.evidence
-    assert res.evidence["candidate_error"], "the lowering failure text must be kept"
+    # Whether inductor can lower at all is an environment fact: a Linux runner
+    # with gcc emits real output code, a box without a C compiler cannot. Both
+    # are legitimate; what must hold either way is that absence is reported as
+    # absence and never as an empty diff.
+    if res.evidence.get("baseline_emitted") and res.evidence.get("candidate_emitted"):
+        assert res.verdict in ("PASS", "FAIL"), res.detail
+        assert "ir_identical" in res.evidence, "a real emission must say whether the IR matched"
+        if res.evidence.get("ir_identical") is False:
+            assert res.evidence.get("ir_diff"), "a differing emission must carry the diff"
+    else:
+        assert res.verdict == "SKIP", res.detail
+        assert "ir_diff" not in res.evidence
+        assert "ir_identical" not in res.evidence
+        assert res.evidence["candidate_error"], "the lowering failure text must be kept"
 
 
 def test_unified_ir_diff_is_empty_only_for_identical_emissions() -> None:
