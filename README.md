@@ -32,14 +32,31 @@ recorded in [docs/RESULTS.md](docs/RESULTS.md).
 | Reward-hack attacks caught by the harness | **100%** (61/61) | 100% |
 | Silent-failure share of the bank (T5+T6) | **61.9%** | ≥35% |
 | Mutation classes producing admitted tasks | **11/12** | — |
-| Taxonomy cells reachable with the current seed set | **14/48** | see below |
+| Taxonomy cells reachable with the current seed set | **12/48** | see below |
 | Test suite | **~600 passing** | green on every push |
 
-The coverage number is deliberately reported unflattered. 12 of the 48 cells need JAX/Pallas
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/metrics-dark.svg">
+    <img alt="Headline metrics measured against their targets" src="docs/assets/metrics-light.svg" width="800">
+  </picture>
+</p>
+
+The coverage number is reported unflattered on purpose. Twelve of the 48 cells need JAX/Pallas
 seeds that cannot execute on this machine at all, and the T1 row needs a mutation class that
-emits a compile error, which needs a working compiler. Reporting `1/48 cells at target`
-while knowing only 14 are reachable would be the same unverified claim the project exists to
-eliminate.
+emits a compile error — which needs a working compiler. Quoting a raw fill rate while knowing
+the ceiling would be the same unverified claim the project exists to eliminate.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/coverage-dark.svg">
+    <img alt="Taxonomy coverage grid: tasks per tier and domain, with structurally unreachable cells hatched" src="docs/assets/coverage-light.svg" width="880">
+  </picture>
+</p>
+
+Hatched cells are not gaps the generator can close by running longer — they need a seed in that
+domain, or a mutation class that emits that tier. Both charts are regenerated from the bank by
+[`scripts/make_charts.py`](scripts/make_charts.py), so they cannot drift from what was measured.
 
 ---
 
@@ -92,21 +109,35 @@ clears the threshold.
 
 ## Architecture
 
-```
-known-good kernels  ->  L1  MUTATION ENGINE        -> task + ground-truth diff
-(attention, matmul,     |    12 semantic bug classes   + a witness proving it is real
- quant, collectives,    v
- dataloader, ckpt)      L2  FIVE-ORACLE VERIFIER   -> PASS / FAIL / SKIP + evidence JSON
-                        |    O1 numerics    O2 performance
-                        |    O3 anti-cheat  O4 compile
-                        |    O5 N-rank equivalence
-                        v
-                        L3  DIFFICULTY CALIBRATOR  -> ship / reject / escalate
-                        |    pass@k against the target model
-                        v
-                        L4  RUBRIC ENGINE + IRR    -> Krippendorff alpha per criterion
-                        v
-                        L5  REWARD-HACK RED TEAM   -> grader regression suite
+```mermaid
+flowchart TD
+    S["Known-good seeds<br/>attention · matmul · quant<br/>collectives · dataloader · checkpointing"]
+    L1["<b>L1 · Mutation engine</b><br/>12 semantic bug classes<br/>witness search"]
+    D{"Witness<br/>found?"}
+    X["Discarded<br/><i>semantically neutral or<br/>untested-by-construction</i>"]
+    L2["<b>L2 · Five-oracle verifier</b><br/>O1 numerics · O2 performance<br/>O3 anti-cheat · O4 compile<br/>O5 N-rank equivalence"]
+    V{"Executed and<br/>passed all?"}
+    F["FAIL / SKIP<br/><i>counts against the headline</i>"]
+    L3["<b>L3 · Difficulty calibrator</b><br/>pass@k vs target model"]
+    R{"Route"}
+    L4["<b>L4 · Rubric engine</b><br/>Krippendorff α per criterion"]
+    L5["<b>L5 · Reward-hack red team</b><br/>grader regression suite"]
+    SHIP(["Shipped task<br/>task · solution · rubric"])
+
+    S --> L1 --> D
+    D -- no --> X
+    D -- yes --> L2 --> V
+    V -- no --> F
+    V -- yes --> L3 --> R
+    R -- "pass@1 > 0.9" --> X
+    R -- "pass@8 = 0" --> F
+    R -- "gold / frontier" --> L4 --> L5 --> SHIP
+
+    style SHIP fill:#0ca30c,color:#fff,stroke:#0ca30c
+    style X fill:#f0efec,color:#0b0b0b,stroke:#c9c8c2
+    style F fill:#fab219,color:#0b0b0b,stroke:#fab219
+    style L1 fill:#2a78d6,color:#fff,stroke:#2a78d6
+    style L2 fill:#2a78d6,color:#fff,stroke:#2a78d6
 ```
 
 **The organizing idea.** Every task family is stratified by *how observable the failure is* —
