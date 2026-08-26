@@ -38,10 +38,14 @@ jobs:
           pip install -e .
 
       - name: Capability report
-        # Not a gate -- it records what this runner can honestly verify, so a
-        # green tick is never mistaken for "every oracle ran". A GPU-less
-        # runner legitimately skips O2 and O4's lowering checks, and the log
-        # says so in as many words.
+        # Genuinely not a gate: it records what this runner can honestly
+        # verify, so a green tick is never mistaken for "every oracle ran". A
+        # GPU-less runner legitimately skips O2 and O4's lowering checks, and
+        # the log says so in as many words. continue-on-error makes the
+        # comment true -- doctor exits 0 here today, but its contract is to
+        # exit non-zero when the machine is capability-blocked, and that must
+        # not be reported as a broken build.
+        continue-on-error: true
         run: crucible doctor
 
       - name: Tests

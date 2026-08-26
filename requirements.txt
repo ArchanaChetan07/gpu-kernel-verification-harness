@@ -15,6 +15,10 @@ scipy>=1.11
 pydantic>=2.5
 pyyaml>=6.0
 typer>=0.12
+# click is imported directly by cli.py, so it is declared here rather than
+# leaned on as a transitive dependency of typer. It only worked locally
+# because the dev Anaconda environment ships it; a clean runner does not.
+click>=8.0
 rich>=13.0
 jinja2>=3.1
 
