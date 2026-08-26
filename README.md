@@ -1,5 +1,9 @@
 # gpu-kernel-verification-harness
 
+[![CI](https://github.com/ArchanaChetan07/gpu-kernel-verification-harness/actions/workflows/ci.yml/badge.svg)](https://github.com/ArchanaChetan07/gpu-kernel-verification-harness/actions/workflows/ci.yml)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
+[![PyTorch 2.6](https://img.shields.io/badge/pytorch-2.6-ee4c2c.svg)](https://pytorch.org/)
+
 **CRUCIBLE** - an execution-grounded verification harness and task foundry for
 ML-systems training data. CUDA / Triton / PyTorch numerics, performance,
 anti-cheat, compile, and multi-rank distributed oracles.

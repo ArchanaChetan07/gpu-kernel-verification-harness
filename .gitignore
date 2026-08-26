@@ -42,3 +42,7 @@ calibration.json
 redteam.json
 coverage.json
 capabilities.json
+
+# CI scratch
+ci_bank/
+ci_verdicts/
