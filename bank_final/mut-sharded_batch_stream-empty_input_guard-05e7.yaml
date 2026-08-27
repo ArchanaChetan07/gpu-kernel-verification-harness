@@ -1,0 +1,416 @@
+task_id: mut-sharded_batch_stream-empty_input_guard-05e7
+schema_version: '1.0'
+created_utc: '2026-08-26T18:11:38+00:00'
+seed_source:
+  seed_id: dataloader.sharded_batch_stream
+  module: crucible.seeds.dataloader
+  entry: batch_stream
+  content_sha256: 25542031183b421c921460938dc9b69a62e28972dbd19320201772355f23675f
+domain: data_pipeline
+failure_tier: T2
+mutation:
+  cls: empty_input_guard
+  site: dataloader.sharded_batch_stream:If@24:4#0
+  params:
+    test: n <= 0
+    guarded_exit: Return
+    site: If@24:4#0
+  description: Delete the guard that skips a zero-length block, so the degenerate case falls through into the indexing path.
+baseline_code: "\"\"\"Deterministic sharded batch stream with an explicit prefetch model.\"\"\"\nimport math\nimport torch\n\ndef _coprime_multiplier(n, s):\n    \"\"\"Smallest multiplier at or after a seeded start that is coprime to n, so\n    that ``i -> a*i`` is a bijection on ``range(n)``.\"\"\"\n    if n <= 1:\n        return 1\n    a = 1 + int(s) * 2246822519 % n\n    while math.gcd(a, n) != 1:\n        a += 1\n        if a > n:\n            a = 1\n    return a\n\ndef _permutation(n, seed, epoch):\n    \"\"\"Index-space shuffle derived from (seed, epoch) alone.\n\n    Every rank computes this identically without exchanging RNG state, and a\n    resumed run reproduces it. Deriving it from the rank instead is how shards\n    silently overlap.\n    \"\"\"\n    if n <= 0:\n        return torch.zeros(0, dtype=torch.int64)\n    a = _coprime_multiplier(n, int(seed) + int(epoch))\n    b = (int(seed) * 2654435761 + int(epoch) * 40503) % n\n    idx = torch.arange(n, dtype=torch.int64)\n    return (a * idx + b) % n\n\ndef _pad_or_drop(order, world_size, drop_last):\n    \"\"\"The decision, made once and globally: drop the ragged tail, or wrap the\n    head of the order around to fill it. Both branches must leave every rank\n    with the same shard length. Returns (order, n_padded).\"\"\"\n    n = int(order.shape[0])\n    if n == 0:\n        return (order, 0)\n    if drop_last:\n        usable = n // world_size * world_size\n        return (order[:usable], 0)\n    per = (n + world_size - 1) // world_size\n    total = per * world_size\n    reps = (total + n - 1) // n\n    return (order.repeat(reps)[:total], total - n)\n\ndef _batch_bounds(shard_len, batch_size, drop_last):\n    \"\"\"Batch boundaries within one shard. The tail batch is dropped or emitted\n    short; it is never padded a second time.\n\n    The guard is load-bearing, not decoration: ``width`` below is the divisor,\n    and a shard with no samples has no width to divide by.\n    \"\"\"\n    if shard_len <= 0:\n        return []\n    width = min(batch_size, shard_len)\n    if drop_last:\n        n_batches = shard_len // batch_size\n    else:\n        n_batches = (shard_len + width - 1) // width\n    bounds = []\n    for bi in range(n_batches):\n        lo = bi * batch_size\n        hi = min(lo + batch_size, shard_len)\n        bounds.append((lo, hi))\n    return bounds\n\ndef _simulate(n_batches, prefetch_depth, producer_ms, consumer_ms):\n    \"\"\"Bounded-queue producer/consumer over one rank's batches.\n\n    With depth d the producer may run d batches ahead of the consumer; batch i\n    cannot start until batch i-d has been consumed and its queue slot freed.\n    Depth 0 is no buffering at all: every batch is produced on demand, so the\n    consumer stalls for the full producer latency every single time.\n\n    Both sides of the depth are reported. ``stall_ms`` is the consumer waiting\n    on an empty queue (depth too shallow); ``producer_idle_ms`` is the producer\n    blocked on a full one (depth binding). A pipeline that ignores the depth\n    entirely shows zero producer idle time and is otherwise indistinguishable.\n    \"\"\"\n    depth = int(prefetch_depth)\n    if depth < 0:\n        depth = 0\n    ready = [0] * n_batches\n    done = [0] * n_batches\n    prod_free = 0\n    cons_free = 0\n    stalls = 0\n    stall_ms = 0\n    idle_ms = 0\n    for i in range(n_batches):\n        gate = prod_free\n        if depth == 0:\n            gate = max(gate, cons_free)\n        elif i >= depth:\n            gate = max(gate, done[i - depth])\n        idle_ms += gate - prod_free\n        ready[i] = gate + producer_ms\n        prod_free = ready[i]\n        if ready[i] > cons_free:\n            stalls += 1\n            stall_ms += ready[i] - cons_free\n        done[i] = max(cons_free, ready[i]) + consumer_ms\n        cons_free = done[i]\n    return (stalls, stall_ms, cons_free, idle_ms)\n\ndef _cat(parts):\n    if not parts:\n        return torch.zeros(0, dtype=torch.int64)\n    return torch.cat(parts)\n\ndef batch_stream(n_samples, world_size, batch_size, seed=0, epochs=1, drop_last=False, prefetch_depth=2, producer_ms=3, consumer_ms=2):\n    \"\"\"Emit every rank's stream for every epoch, in (epoch, rank, batch) order.\"\"\"\n    n = int(n_samples)\n    ws = int(world_size)\n    bs = int(batch_size)\n    if ws <= 0:\n        raise ValueError('world_size must be positive')\n    if bs <= 0:\n        raise ValueError('batch_size must be positive')\n    if n < 0:\n        raise ValueError('n_samples must not be negative')\n    order_parts = []\n    rank_parts = []\n    epoch_parts = []\n    batch_parts = []\n    counts = torch.zeros(n, dtype=torch.int64)\n    n_batches = []\n    stalls = []\n    stall_ms = []\n    makespan = []\n    idle = []\n    pad_total = 0\n    for epoch in range(int(epochs)):\n        perm = _permutation(n, seed, epoch)\n        padded, padded_n = _pad_or_drop(perm, ws, bool(drop_last))\n        pad_total += padded_n\n        for rank in range(ws):\n            shard = padded[rank::ws]\n            bounds = _batch_bounds(int(shard.shape[0]), bs, bool(drop_last))\n            n_batches.append(len(bounds))\n            s, sm, mk, idl = _simulate(len(bounds), prefetch_depth, int(producer_ms), int(consumer_ms))\n            stalls.append(s)\n            stall_ms.append(sm)\n            makespan.append(mk)\n            idle.append(idl)\n            for bi in range(len(bounds)):\n                lo, hi = bounds[bi]\n                chunk = shard[lo:hi]\n                width = hi - lo\n                order_parts.append(chunk)\n                rank_parts.append(torch.full((width,), rank, dtype=torch.int64))\n                epoch_parts.append(torch.full((width,), epoch, dtype=torch.int64))\n                batch_parts.append(torch.full((width,), bi, dtype=torch.int64))\n                counts.index_add_(0, chunk, torch.ones(width, dtype=torch.int64))\n    return {'order': _cat(order_parts), 'rank_of': _cat(rank_parts), 'epoch_of': _cat(epoch_parts), 'batch_of': _cat(batch_parts), 'counts': counts, 'n_batches': torch.tensor(n_batches, dtype=torch.int64), 'stalls': torch.tensor(stalls, dtype=torch.int64), 'stall_ms': torch.tensor(stall_ms, dtype=torch.int64), 'makespan_ms': torch.tensor(makespan, dtype=torch.int64), 'producer_idle_ms': torch.tensor(idle, dtype=torch.int64), 'pad_count': torch.tensor(pad_total, dtype=torch.int64)}\n"
+mutant_code: "\"\"\"Deterministic sharded batch stream with an explicit prefetch model.\"\"\"\nimport math\nimport torch\n\ndef _coprime_multiplier(n, s):\n    \"\"\"Smallest multiplier at or after a seeded start that is coprime to n, so\n    that ``i -> a*i`` is a bijection on ``range(n)``.\"\"\"\n    if n <= 1:\n        return 1\n    a = 1 + int(s) * 2246822519 % n\n    while math.gcd(a, n) != 1:\n        a += 1\n        if a > n:\n            a = 1\n    return a\n\ndef _permutation(n, seed, epoch):\n    \"\"\"Index-space shuffle derived from (seed, epoch) alone.\n\n    Every rank computes this identically without exchanging RNG state, and a\n    resumed run reproduces it. Deriving it from the rank instead is how shards\n    silently overlap.\n    \"\"\"\n    a = _coprime_multiplier(n, int(seed) + int(epoch))\n    b = (int(seed) * 2654435761 + int(epoch) * 40503) % n\n    idx = torch.arange(n, dtype=torch.int64)\n    return (a * idx + b) % n\n\ndef _pad_or_drop(order, world_size, drop_last):\n    \"\"\"The decision, made once and globally: drop the ragged tail, or wrap the\n    head of the order around to fill it. Both branches must leave every rank\n    with the same shard length. Returns (order, n_padded).\"\"\"\n    n = int(order.shape[0])\n    if n == 0:\n        return (order, 0)\n    if drop_last:\n        usable = n // world_size * world_size\n        return (order[:usable], 0)\n    per = (n + world_size - 1) // world_size\n    total = per * world_size\n    reps = (total + n - 1) // n\n    return (order.repeat(reps)[:total], total - n)\n\ndef _batch_bounds(shard_len, batch_size, drop_last):\n    \"\"\"Batch boundaries within one shard. The tail batch is dropped or emitted\n    short; it is never padded a second time.\n\n    The guard is load-bearing, not decoration: ``width`` below is the divisor,\n    and a shard with no samples has no width to divide by.\n    \"\"\"\n    if shard_len <= 0:\n        return []\n    width = min(batch_size, shard_len)\n    if drop_last:\n        n_batches = shard_len // batch_size\n    else:\n        n_batches = (shard_len + width - 1) // width\n    bounds = []\n    for bi in range(n_batches):\n        lo = bi * batch_size\n        hi = min(lo + batch_size, shard_len)\n        bounds.append((lo, hi))\n    return bounds\n\ndef _simulate(n_batches, prefetch_depth, producer_ms, consumer_ms):\n    \"\"\"Bounded-queue producer/consumer over one rank's batches.\n\n    With depth d the producer may run d batches ahead of the consumer; batch i\n    cannot start until batch i-d has been consumed and its queue slot freed.\n    Depth 0 is no buffering at all: every batch is produced on demand, so the\n    consumer stalls for the full producer latency every single time.\n\n    Both sides of the depth are reported. ``stall_ms`` is the consumer waiting\n    on an empty queue (depth too shallow); ``producer_idle_ms`` is the producer\n    blocked on a full one (depth binding). A pipeline that ignores the depth\n    entirely shows zero producer idle time and is otherwise indistinguishable.\n    \"\"\"\n    depth = int(prefetch_depth)\n    if depth < 0:\n        depth = 0\n    ready = [0] * n_batches\n    done = [0] * n_batches\n    prod_free = 0\n    cons_free = 0\n    stalls = 0\n    stall_ms = 0\n    idle_ms = 0\n    for i in range(n_batches):\n        gate = prod_free\n        if depth == 0:\n            gate = max(gate, cons_free)\n        elif i >= depth:\n            gate = max(gate, done[i - depth])\n        idle_ms += gate - prod_free\n        ready[i] = gate + producer_ms\n        prod_free = ready[i]\n        if ready[i] > cons_free:\n            stalls += 1\n            stall_ms += ready[i] - cons_free\n        done[i] = max(cons_free, ready[i]) + consumer_ms\n        cons_free = done[i]\n    return (stalls, stall_ms, cons_free, idle_ms)\n\ndef _cat(parts):\n    if not parts:\n        return torch.zeros(0, dtype=torch.int64)\n    return torch.cat(parts)\n\ndef batch_stream(n_samples, world_size, batch_size, seed=0, epochs=1, drop_last=False, prefetch_depth=2, producer_ms=3, consumer_ms=2):\n    \"\"\"Emit every rank's stream for every epoch, in (epoch, rank, batch) order.\"\"\"\n    n = int(n_samples)\n    ws = int(world_size)\n    bs = int(batch_size)\n    if ws <= 0:\n        raise ValueError('world_size must be positive')\n    if bs <= 0:\n        raise ValueError('batch_size must be positive')\n    if n < 0:\n        raise ValueError('n_samples must not be negative')\n    order_parts = []\n    rank_parts = []\n    epoch_parts = []\n    batch_parts = []\n    counts = torch.zeros(n, dtype=torch.int64)\n    n_batches = []\n    stalls = []\n    stall_ms = []\n    makespan = []\n    idle = []\n    pad_total = 0\n    for epoch in range(int(epochs)):\n        perm = _permutation(n, seed, epoch)\n        padded, padded_n = _pad_or_drop(perm, ws, bool(drop_last))\n        pad_total += padded_n\n        for rank in range(ws):\n            shard = padded[rank::ws]\n            bounds = _batch_bounds(int(shard.shape[0]), bs, bool(drop_last))\n            n_batches.append(len(bounds))\n            s, sm, mk, idl = _simulate(len(bounds), prefetch_depth, int(producer_ms), int(consumer_ms))\n            stalls.append(s)\n            stall_ms.append(sm)\n            makespan.append(mk)\n            idle.append(idl)\n            for bi in range(len(bounds)):\n                lo, hi = bounds[bi]\n                chunk = shard[lo:hi]\n                width = hi - lo\n                order_parts.append(chunk)\n                rank_parts.append(torch.full((width,), rank, dtype=torch.int64))\n                epoch_parts.append(torch.full((width,), epoch, dtype=torch.int64))\n                batch_parts.append(torch.full((width,), bi, dtype=torch.int64))\n                counts.index_add_(0, chunk, torch.ones(width, dtype=torch.int64))\n    return {'order': _cat(order_parts), 'rank_of': _cat(rank_parts), 'epoch_of': _cat(epoch_parts), 'batch_of': _cat(batch_parts), 'counts': counts, 'n_batches': torch.tensor(n_batches, dtype=torch.int64), 'stalls': torch.tensor(stalls, dtype=torch.int64), 'stall_ms': torch.tensor(stall_ms, dtype=torch.int64), 'makespan_ms': torch.tensor(makespan, dtype=torch.int64), 'producer_idle_ms': torch.tensor(idle, dtype=torch.int64), 'pad_count': torch.tensor(pad_total, dtype=torch.int64)}\n"
+ground_truth_diff: "--- a/batch_stream.py (mutant)\n+++ b/batch_stream.py (baseline)\n@@ -21,6 +21,8 @@\n     resumed run reproduces it. Deriving it from the rank instead is how shards\n     silently overlap.\n     \"\"\"\n+    if n <= 0:\n+        return torch.zeros(0, dtype=torch.int64)\n     a = _coprime_multiplier(n, int(seed) + int(epoch))\n     b = (int(seed) * 2654435761 + int(epoch) * 40503) % n\n     idx = torch.arange(n, dtype=torch.int64)\n"
+witness:
+  shape:
+    name: zero_samples
+    kwargs:
+      n_samples: 0
+      world_size: 3
+      batch_size: 4
+      drop_last: false
+  max_abs_err: 0.0
+  max_rel_err: 0.0
+  tolerance: 2.384185791015625e-07
+  baseline_checksum: a48e62985087b2062b63ee9e02d94255250bc5802da5350625d71bf976f26804
+  mutant_checksum: ''
+  kind: exception
+  detail: 'mutant raised where the baseline succeeded: candidate_exception: ZeroDivisionError: integer modulo by zero | budget: fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07 [crucible.oracles.tolerance.derive]'
+detect_shapes:
+- name: zero_samples
+  kwargs:
+    n_samples: 0
+    world_size: 3
+    batch_size: 4
+    drop_last: false
+decoy_shapes:
+- name: empty_shards_2x4
+  kwargs:
+    n_samples: 2
+    world_size: 4
+    batch_size: 2
+    drop_last: true
+- name: pad_from_two_2x4
+  kwargs:
+    n_samples: 2
+    world_size: 4
+    batch_size: 2
+    drop_last: false
+- name: batch_gt_shard
+  kwargs:
+    n_samples: 9
+    world_size: 2
+    batch_size: 32
+    drop_last: false
+- name: ragged_45x4_shorttail
+  kwargs:
+    n_samples: 45
+    world_size: 4
+    batch_size: 4
+    drop_last: false
+- name: prefetch0_stall_every
+  kwargs:
+    n_samples: 48
+    world_size: 2
+    batch_size: 4
+    drop_last: true
+    prefetch_depth: 0
+    producer_ms: 7
+    consumer_ms: 2
+- name: prefetch2_backpressure
+  kwargs:
+    n_samples: 48
+    world_size: 2
+    batch_size: 4
+    drop_last: true
+    prefetch_depth: 2
+    producer_ms: 1
+    consumer_ms: 5
+- name: prefetch8_no_stall
+  kwargs:
+    n_samples: 48
+    world_size: 2
+    batch_size: 4
+    drop_last: true
+    prefetch_depth: 8
+    producer_ms: 1
+    consumer_ms: 5
+- name: even_64x4x16
+  kwargs:
+    n_samples: 64
+    world_size: 4
+    batch_size: 16
+    drop_last: true
+- name: two_epochs_35x3
+  kwargs:
+    n_samples: 35
+    world_size: 3
+    batch_size: 6
+    epochs: 2
+    seed: 17
+    drop_last: false
+- name: ragged_100x3_drop
+  kwargs:
+    n_samples: 100
+    world_size: 3
+    batch_size: 8
+    drop_last: true
+- name: ragged_100x3_pad
+  kwargs:
+    n_samples: 100
+    world_size: 3
+    batch_size: 8
+    drop_last: false
+prompt: "# Debugging task: `batch_stream`\n\nThe `batch_stream` implementation below is a data_pipeline routine that is believed to be\ncorrect. It is not. On at least one input it silently disagrees with an\nindependent reference implementation, and the disagreement is not visible on the\nshapes it was checked on.\n\n## Implementation under test\n\n```python\n\"\"\"Deterministic sharded batch stream with an explicit prefetch model.\"\"\"\nimport math\nimport torch\n\ndef _coprime_multiplier(n, s):\n    \"\"\"Smallest multiplier at or after a seeded start that is coprime to n, so\n    that ``i -> a*i`` is a bijection on ``range(n)``.\"\"\"\n    if n <= 1:\n        return 1\n    a = 1 + int(s) * 2246822519 % n\n    while math.gcd(a, n) != 1:\n        a += 1\n        if a > n:\n            a = 1\n    return a\n\ndef _permutation(n, seed, epoch):\n    \"\"\"Index-space shuffle derived from (seed, epoch) alone.\n\n    Every rank computes this identically without exchanging RNG state, and a\n    resumed run reproduces it. Deriving it from the rank instead is how shards\n    silently overlap.\n    \"\"\"\n    a = _coprime_multiplier(n, int(seed) + int(epoch))\n    b = (int(seed) * 2654435761 + int(epoch) * 40503) % n\n    idx = torch.arange(n, dtype=torch.int64)\n    return (a * idx + b) % n\n\ndef _pad_or_drop(order, world_size, drop_last):\n    \"\"\"The decision, made once and globally: drop the ragged tail, or wrap the\n    head of the order around to fill it. Both branches must leave every rank\n    with the same shard length. Returns (order, n_padded).\"\"\"\n    n = int(order.shape[0])\n    if n == 0:\n        return (order, 0)\n    if drop_last:\n        usable = n // world_size * world_size\n        return (order[:usable], 0)\n    per = (n + world_size - 1) // world_size\n    total = per * world_size\n    reps = (total + n - 1) // n\n    return (order.repeat(reps)[:total], total - n)\n\ndef _batch_bounds(shard_len, batch_size, drop_last):\n    \"\"\"Batch boundaries within one shard. The tail batch is dropped or emitted\n    short; it is never padded a second time.\n\n    The guard is load-bearing, not decoration: ``width`` below is the divisor,\n    and a shard with no samples has no width to divide by.\n    \"\"\"\n    if shard_len <= 0:\n        return []\n    width = min(batch_size, shard_len)\n    if drop_last:\n        n_batches = shard_len // batch_size\n    else:\n        n_batches = (shard_len + width - 1) // width\n    bounds = []\n    for bi in range(n_batches):\n        lo = bi * batch_size\n        hi = min(lo + batch_size, shard_len)\n        bounds.append((lo, hi))\n    return bounds\n\ndef _simulate(n_batches, prefetch_depth, producer_ms, consumer_ms):\n    \"\"\"Bounded-queue producer/consumer over one rank's batches.\n\n    With depth d the producer may run d batches ahead of the consumer; batch i\n    cannot start until batch i-d has been consumed and its queue slot freed.\n    Depth 0 is no buffering at all: every batch is produced on demand, so the\n    consumer stalls for the full producer latency every single time.\n\n    Both sides of the depth are reported. ``stall_ms`` is the consumer waiting\n    on an empty queue (depth too shallow); ``producer_idle_ms`` is the producer\n    blocked on a full one (depth binding). A pipeline that ignores the depth\n    entirely shows zero producer idle time and is otherwise indistinguishable.\n    \"\"\"\n    depth = int(prefetch_depth)\n    if depth < 0:\n        depth = 0\n    ready = [0] * n_batches\n    done = [0] * n_batches\n    prod_free = 0\n    cons_free = 0\n    stalls = 0\n    stall_ms = 0\n    idle_ms = 0\n    for i in range(n_batches):\n        gate = prod_free\n        if depth == 0:\n            gate = max(gate, cons_free)\n        elif i >= depth:\n            gate = max(gate, done[i - depth])\n        idle_ms += gate - prod_free\n        ready[i] = gate + producer_ms\n        prod_free = ready[i]\n        if ready[i] > cons_free:\n            stalls += 1\n            stall_ms += ready[i] - cons_free\n        done[i] = max(cons_free, ready[i]) + consumer_ms\n        cons_free = done[i]\n    return (stalls, stall_ms, cons_free, idle_ms)\n\ndef _cat(parts):\n    if not parts:\n        return torch.zeros(0, dtype=torch.int64)\n    return torch.cat(parts)\n\ndef batch_stream(n_samples, world_size, batch_size, seed=0, epochs=1, drop_last=False, prefetch_depth=2, producer_ms=3, consumer_ms=2):\n    \"\"\"Emit every rank's stream for every epoch, in (epoch, rank, batch) order.\"\"\"\n    n = int(n_samples)\n    ws = int(world_size)\n    bs = int(batch_size)\n    if ws <= 0:\n        raise ValueError('world_size must be positive')\n    if bs <= 0:\n        raise ValueError('batch_size must be positive')\n    if n < 0:\n        raise ValueError('n_samples must not be negative')\n    order_parts = []\n    rank_parts = []\n    epoch_parts = []\n    batch_parts = []\n    counts = torch.zeros(n, dtype=torch.int64)\n    n_batches = []\n    stalls = []\n    stall_ms = []\n    makespan = []\n    idle = []\n    pad_total = 0\n    for epoch in range(int(epochs)):\n        perm = _permutation(n, seed, epoch)\n        padded, padded_n = _pad_or_drop(perm, ws, bool(drop_last))\n        pad_total += padded_n\n        for rank in range(ws):\n            shard = padded[rank::ws]\n            bounds = _batch_bounds(int(shard.shape[0]), bs, bool(drop_last))\n            n_batches.append(len(bounds))\n            s, sm, mk, idl = _simulate(len(bounds), prefetch_depth, int(producer_ms), int(consumer_ms))\n            stalls.append(s)\n            stall_ms.append(sm)\n            makespan.append(mk)\n            idle.append(idl)\n            for bi in range(len(bounds)):\n                lo, hi = bounds[bi]\n                chunk = shard[lo:hi]\n                width = hi - lo\n                order_parts.append(chunk)\n                rank_parts.append(torch.full((width,), rank, dtype=torch.int64))\n                epoch_parts.append(torch.full((width,), epoch, dtype=torch.int64))\n                batch_parts.append(torch.full((width,), bi, dtype=torch.int64))\n                counts.index_add_(0, chunk, torch.ones(width, dtype=torch.int64))\n    return {'order': _cat(order_parts), 'rank_of': _cat(rank_parts), 'epoch_of': _cat(epoch_parts), 'batch_of': _cat(batch_parts), 'counts': counts, 'n_batches': torch.tensor(n_batches, dtype=torch.int64), 'stalls': torch.tensor(stalls, dtype=torch.int64), 'stall_ms': torch.tensor(stall_ms, dtype=torch.int64), 'makespan_ms': torch.tensor(makespan, dtype=torch.int64), 'producer_idle_ms': torch.tensor(idle, dtype=torch.int64), 'pad_count': torch.tensor(pad_total, dtype=torch.int64)}\n```\n\n## Shapes it was checked on\n\nEach of these was executed and agreed with an independent reference to within the derived error budget, so none of them exposes the defect:\n\n- `empty_shards_2x4`: batch_size=2, drop_last=True, n_samples=2, world_size=4\n- `pad_from_two_2x4`: batch_size=2, drop_last=False, n_samples=2, world_size=4\n- `batch_gt_shard`: batch_size=32, drop_last=False, n_samples=9, world_size=2\n- `ragged_45x4_shorttail`: batch_size=4, drop_last=False, n_samples=45, world_size=4\n- `prefetch0_stall_every`: batch_size=4, consumer_ms=2, drop_last=True, n_samples=48, prefetch_depth=0, producer_ms=7, world_size=2\n- `prefetch2_backpressure`: batch_size=4, consumer_ms=5, drop_last=True, n_samples=48, prefetch_depth=2, producer_ms=1, world_size=2\n- `prefetch8_no_stall`: batch_size=4, consumer_ms=5, drop_last=True, n_samples=48, prefetch_depth=8, producer_ms=1, world_size=2\n- `even_64x4x16`: batch_size=16, drop_last=True, n_samples=64, world_size=4\n- `two_epochs_35x3`: batch_size=6, drop_last=False, epochs=2, n_samples=35, seed=17, world_size=3\n- `ragged_100x3_drop`: batch_size=8, drop_last=True, n_samples=100, world_size=3\n- `ragged_100x3_pad`: batch_size=8, drop_last=False, n_samples=100, world_size=3\n\n## What to produce\n\n1. **Root cause.** Which expression is wrong, and what it does wrong.\n2. **Trigger class.** What property an input must have for the defect to show,\n   and why every shape above lacks that property.\n3. **Fix.** A corrected `batch_stream` with the same name and the same signature.\n\n## Rules\n\n- Pure PyTorch. Do not import or call: `torch.utils.data.DistributedSampler`, `torch.utils.data.DataLoader`, `torch.utils.data.RandomSampler`, `torch.randperm`, `random.shuffle`, `random.sample`, `numpy.random`, `crucible.seeds.dataloader`.\n- Do not special-case shapes, memoise inputs, or return a precomputed answer.\n- Your submission is executed on withheld shapes chosen specifically to expose\n  this defect, with freshly seeded inputs. Reproducing the behaviour on the\n  shapes above is necessary and not sufficient.\n"
+oracles:
+- O1
+- O3
+rubric:
+  criteria:
+  - id: numerics_within_budget
+    weight: 4.0
+    anchors:
+      '0': the fixed implementation still exceeds the derived error budget
+      '3': within the budget on every graded shape
+      '5': within the budget with margin, on the witness shape included
+    auto_probe: oracle.O1.max_rel_err
+    probe_thresholds:
+    - - 2.384185791015625e-07
+      - 5
+    - - 2.384185791015625e-05
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  - id: witness_shape_fixed
+    weight: 3.0
+    anchors:
+      '0': the withheld shape still reproduces the defect
+      '3': the withheld shape is fixed
+      '5': the withheld shape is fixed and the absolute error is at reference level
+    auto_probe: oracle.O1.max_abs_err
+    probe_thresholds:
+    - - 1.0e-06
+      - 5
+    - - 0.001
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  - id: root_cause_explanation
+    weight: 2.0
+    anchors:
+      '0': no mechanism given, or the wrong expression blamed
+      '3': names the responsible expression
+      '5': names the expression and derives why the given shapes hide it
+    auto_probe: null
+    probe_thresholds: []
+    machine_probed: false
+  - id: fix_minimality
+    weight: 1.0
+    anchors:
+      '0': rewrites unrelated code or changes the interface
+      '3': a local fix with some incidental change
+      '5': the minimal edit that removes the defect
+    auto_probe: null
+    probe_thresholds: []
+    machine_probed: false
+  version: '1.0'
+calibration: null
+provenance:
+  generator: crucible.mutate.engine
+  generator_version: '1.0'
+  host: Archana-PC
+  python: 3.11.5
+  utc: '2026-08-26T18:11:38+00:00'
+  device: cuda
+  capabilities: torch 2.6.0+cu124 on Windows-10-10.0.26200-SP0; NVIDIA T1000 8GB; cuda=True triton=False ncu=yes gloo=True nccl=False inductor(cpu=False,cuda=False)
+  seed_module: crucible.seeds.dataloader
+  seed_tiers:
+  - T2
+  - T3
+  - T4
+  class_tier: T2
+  site:
+    lineno: 24
+    col_offset: 4
+    node_type: If
+    ordinal: 0
+    label: 'if n <= 0: return torch.zeros(0, dtype=torch.int64)'
+    meta:
+      test: n <= 0
+      guarded_exit: Return
+  seed_source_sha256: 25542031183b421c921460938dc9b69a62e28972dbd19320201772355f23675f
+  canonical_baseline_sha256: 1b07ff62348350ed13a0ef4ca2a04c5f16a352b8198bb166dc7df4cb3af642aa
+  mutant_sha256: 05e7ef22dcc60c9d276370922432a7d19ae0ffb2d4a5f3e0d21be393f26a1378
+  shapes_evaluated: 12
+  shape_outcomes:
+  - shape: zero_samples
+    kwargs:
+      n_samples: 0
+      world_size: 3
+      batch_size: 4
+      drop_last: false
+    usable: true
+    differs: true
+    kind: exception
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'mutant raised where the baseline succeeded: candidate_exception: ZeroDivisionError: integer modulo by zero'
+    baseline_ok: true
+    mutant_ok: false
+    duration_s: 3.647
+  - shape: empty_shards_2x4
+    kwargs:
+      n_samples: 2
+      world_size: 4
+      batch_size: 2
+      drop_last: true
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.6232
+  - shape: pad_from_two_2x4
+    kwargs:
+      n_samples: 2
+      world_size: 4
+      batch_size: 2
+      drop_last: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.6837
+  - shape: batch_gt_shard
+    kwargs:
+      n_samples: 9
+      world_size: 2
+      batch_size: 32
+      drop_last: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.6469
+  - shape: ragged_45x4_shorttail
+    kwargs:
+      n_samples: 45
+      world_size: 4
+      batch_size: 4
+      drop_last: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.6712
+  - shape: prefetch0_stall_every
+    kwargs:
+      n_samples: 48
+      world_size: 2
+      batch_size: 4
+      drop_last: true
+      prefetch_depth: 0
+      producer_ms: 7
+      consumer_ms: 2
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.6888
+  - shape: prefetch2_backpressure
+    kwargs:
+      n_samples: 48
+      world_size: 2
+      batch_size: 4
+      drop_last: true
+      prefetch_depth: 2
+      producer_ms: 1
+      consumer_ms: 5
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.6427
+  - shape: prefetch8_no_stall
+    kwargs:
+      n_samples: 48
+      world_size: 2
+      batch_size: 4
+      drop_last: true
+      prefetch_depth: 8
+      producer_ms: 1
+      consumer_ms: 5
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.6456
+  - shape: even_64x4x16
+    kwargs:
+      n_samples: 64
+      world_size: 4
+      batch_size: 16
+      drop_last: true
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.6577
+  - shape: two_epochs_35x3
+    kwargs:
+      n_samples: 35
+      world_size: 3
+      batch_size: 6
+      epochs: 2
+      seed: 17
+      drop_last: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.5935
+  - shape: ragged_100x3_drop
+    kwargs:
+      n_samples: 100
+      world_size: 3
+      batch_size: 8
+      drop_last: true
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.5501
+  - shape: ragged_100x3_pad
+    kwargs:
+      n_samples: 100
+      world_size: 3
+      batch_size: 8
+      drop_last: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.6635
+  tolerance:
+    rel: 2.384185791015625e-07
+    abs: 2.384185791015625e-07
+    dtype: fp32
+    accum_depth: 1
+    mode: stochastic
+    formula: 'fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    source: crucible.oracles.tolerance.derive

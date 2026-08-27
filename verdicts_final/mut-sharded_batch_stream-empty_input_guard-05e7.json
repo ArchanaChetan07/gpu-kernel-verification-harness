@@ -1,0 +1,1514 @@
+{
+  "task_id": "mut-sharded_batch_stream-empty_input_guard-05e7",
+  "verdict": "SKIP",
+  "executed": true,
+  "oracle_results": [
+    {
+      "oracle": "O1",
+      "verdict": "SKIP",
+      "reason": "12/12 shape(s) could not be executed, so the sweep is incomplete and the passing subset is not a pass -- even_64x4x16: no error budget could be derived for shape 'even_64x4x16': KeyError: \"shape 'even_64x4x16' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"; ragged_100x3_pad: no error budget could be derived for shape 'ragged_100x3_pad': KeyError: \"shape 'ragged_100x3_pad' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"; ragged_100x3_drop: no error budget could be derived for shape 'ragged_100x3_drop': KeyError: \"shape 'ragged_100x3_drop' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"; ragged_45x4_shorttail: no error budget could be derived for shape 'ragged_45x4_shorttail': KeyError: \"shape 'ragged_45x4_shorttail' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\" (+8 more)",
+      "evidence": {
+        "device": "cuda",
+        "rng_seed": 1234,
+        "tolerance_mode": "stochastic",
+        "tolerance_safety": 4.0,
+        "candidate_execution": "subprocess sandbox (crucible.runner.sandbox.call_entry); candidate code is never executed in the grading interpreter",
+        "reference_execution": "in-process (seed.reference is first-party seed-bank code, not candidate input)",
+        "seed_id": "dataloader.sharded_batch_stream",
+        "entry": "batch_stream",
+        "per_shape": [
+          {
+            "name": "even_64x4x16",
+            "shape_key": "465cd13f27420340",
+            "kwargs": {
+              "n_samples": 64,
+              "world_size": 4,
+              "batch_size": 16,
+              "drop_last": true
+            },
+            "status": "skip",
+            "reason": "no error budget could be derived for shape 'even_64x4x16': KeyError: \"shape 'even_64x4x16' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"",
+            "device": "cuda",
+            "rng_seed": 1180489233,
+            "reference_outputs": [
+              {
+                "name": "batch_of",
+                "dtype": "int64",
+                "shape": [
+                  64
+                ]
+              },
+              {
+                "name": "counts",
+                "dtype": "int64",
+                "shape": [
+                  64
+                ]
+              },
+              {
+                "name": "epoch_of",
+                "dtype": "int64",
+                "shape": [
+                  64
+                ]
+              },
+              {
+                "name": "makespan_ms",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "n_batches",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "order",
+                "dtype": "int64",
+                "shape": [
+                  64
+                ]
+              },
+              {
+                "name": "pad_count",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "producer_idle_ms",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "rank_of",
+                "dtype": "int64",
+                "shape": [
+                  64
+                ]
+              },
+              {
+                "name": "stall_ms",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "stalls",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              }
+            ],
+            "exception": {
+              "where": "tolerance",
+              "type": "KeyError",
+              "message": "\"shape 'even_64x4x16' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+            },
+            "duration_s": 0.0008820001967251301
+          },
+          {
+            "name": "ragged_100x3_pad",
+            "shape_key": "0fabc5b8c0612ad6",
+            "kwargs": {
+              "n_samples": 100,
+              "world_size": 3,
+              "batch_size": 8,
+              "drop_last": false
+            },
+            "status": "skip",
+            "reason": "no error budget could be derived for shape 'ragged_100x3_pad': KeyError: \"shape 'ragged_100x3_pad' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"",
+            "device": "cuda",
+            "rng_seed": 262916746,
+            "reference_outputs": [
+              {
+                "name": "batch_of",
+                "dtype": "int64",
+                "shape": [
+                  102
+                ]
+              },
+              {
+                "name": "counts",
+                "dtype": "int64",
+                "shape": [
+                  100
+                ]
+              },
+              {
+                "name": "epoch_of",
+                "dtype": "int64",
+                "shape": [
+                  102
+                ]
+              },
+              {
+                "name": "makespan_ms",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "n_batches",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "order",
+                "dtype": "int64",
+                "shape": [
+                  102
+                ]
+              },
+              {
+                "name": "pad_count",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "producer_idle_ms",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "rank_of",
+                "dtype": "int64",
+                "shape": [
+                  102
+                ]
+              },
+              {
+                "name": "stall_ms",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "stalls",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              }
+            ],
+            "exception": {
+              "where": "tolerance",
+              "type": "KeyError",
+              "message": "\"shape 'ragged_100x3_pad' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+            },
+            "duration_s": 0.0005580000579357147
+          },
+          {
+            "name": "ragged_100x3_drop",
+            "shape_key": "5fe881711e62fca3",
+            "kwargs": {
+              "n_samples": 100,
+              "world_size": 3,
+              "batch_size": 8,
+              "drop_last": true
+            },
+            "status": "skip",
+            "reason": "no error budget could be derived for shape 'ragged_100x3_drop': KeyError: \"shape 'ragged_100x3_drop' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"",
+            "device": "cuda",
+            "rng_seed": 1609074243,
+            "reference_outputs": [
+              {
+                "name": "batch_of",
+                "dtype": "int64",
+                "shape": [
+                  96
+                ]
+              },
+              {
+                "name": "counts",
+                "dtype": "int64",
+                "shape": [
+                  100
+                ]
+              },
+              {
+                "name": "epoch_of",
+                "dtype": "int64",
+                "shape": [
+                  96
+                ]
+              },
+              {
+                "name": "makespan_ms",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "n_batches",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "order",
+                "dtype": "int64",
+                "shape": [
+                  96
+                ]
+              },
+              {
+                "name": "pad_count",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "producer_idle_ms",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "rank_of",
+                "dtype": "int64",
+                "shape": [
+                  96
+                ]
+              },
+              {
+                "name": "stall_ms",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "stalls",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              }
+            ],
+            "exception": {
+              "where": "tolerance",
+              "type": "KeyError",
+              "message": "\"shape 'ragged_100x3_drop' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+            },
+            "duration_s": 0.0005141000729054213
+          },
+          {
+            "name": "ragged_45x4_shorttail",
+            "shape_key": "60af97228697d148",
+            "kwargs": {
+              "n_samples": 45,
+              "world_size": 4,
+              "batch_size": 4,
+              "drop_last": false
+            },
+            "status": "skip",
+            "reason": "no error budget could be derived for shape 'ragged_45x4_shorttail': KeyError: \"shape 'ragged_45x4_shorttail' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"",
+            "device": "cuda",
+            "rng_seed": 1622121460,
+            "reference_outputs": [
+              {
+                "name": "batch_of",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "counts",
+                "dtype": "int64",
+                "shape": [
+                  45
+                ]
+              },
+              {
+                "name": "epoch_of",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "makespan_ms",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "n_batches",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "order",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "pad_count",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "producer_idle_ms",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "rank_of",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "stall_ms",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "stalls",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              }
+            ],
+            "exception": {
+              "where": "tolerance",
+              "type": "KeyError",
+              "message": "\"shape 'ragged_45x4_shorttail' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+            },
+            "duration_s": 0.0004914999008178711
+          },
+          {
+            "name": "empty_shards_2x4",
+            "shape_key": "3393183e4f7c7cd9",
+            "kwargs": {
+              "n_samples": 2,
+              "world_size": 4,
+              "batch_size": 2,
+              "drop_last": true
+            },
+            "status": "skip",
+            "reason": "no error budget could be derived for shape 'empty_shards_2x4': KeyError: \"shape 'empty_shards_2x4' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"",
+            "device": "cuda",
+            "rng_seed": 865279248,
+            "reference_outputs": [
+              {
+                "name": "batch_of",
+                "dtype": "int64",
+                "shape": [
+                  0
+                ]
+              },
+              {
+                "name": "counts",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "epoch_of",
+                "dtype": "int64",
+                "shape": [
+                  0
+                ]
+              },
+              {
+                "name": "makespan_ms",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "n_batches",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "order",
+                "dtype": "int64",
+                "shape": [
+                  0
+                ]
+              },
+              {
+                "name": "pad_count",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "producer_idle_ms",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "rank_of",
+                "dtype": "int64",
+                "shape": [
+                  0
+                ]
+              },
+              {
+                "name": "stall_ms",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "stalls",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              }
+            ],
+            "exception": {
+              "where": "tolerance",
+              "type": "KeyError",
+              "message": "\"shape 'empty_shards_2x4' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+            },
+            "duration_s": 0.00040220003575086594
+          },
+          {
+            "name": "pad_from_two_2x4",
+            "shape_key": "42a5680009188541",
+            "kwargs": {
+              "n_samples": 2,
+              "world_size": 4,
+              "batch_size": 2,
+              "drop_last": false
+            },
+            "status": "skip",
+            "reason": "no error budget could be derived for shape 'pad_from_two_2x4': KeyError: \"shape 'pad_from_two_2x4' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"",
+            "device": "cuda",
+            "rng_seed": 1118137554,
+            "reference_outputs": [
+              {
+                "name": "batch_of",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "counts",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "epoch_of",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "makespan_ms",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "n_batches",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "order",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "pad_count",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "producer_idle_ms",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "rank_of",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "stall_ms",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "stalls",
+                "dtype": "int64",
+                "shape": [
+                  4
+                ]
+              }
+            ],
+            "exception": {
+              "where": "tolerance",
+              "type": "KeyError",
+              "message": "\"shape 'pad_from_two_2x4' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+            },
+            "duration_s": 0.0004110001027584076
+          },
+          {
+            "name": "zero_samples",
+            "shape_key": "24c71ae890cb74c9",
+            "kwargs": {
+              "n_samples": 0,
+              "world_size": 3,
+              "batch_size": 4,
+              "drop_last": false
+            },
+            "status": "skip",
+            "reason": "no error budget could be derived for shape 'zero_samples': KeyError: \"shape 'zero_samples' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"",
+            "device": "cuda",
+            "rng_seed": 617029562,
+            "reference_outputs": [
+              {
+                "name": "batch_of",
+                "dtype": "int64",
+                "shape": [
+                  0
+                ]
+              },
+              {
+                "name": "counts",
+                "dtype": "int64",
+                "shape": [
+                  0
+                ]
+              },
+              {
+                "name": "epoch_of",
+                "dtype": "int64",
+                "shape": [
+                  0
+                ]
+              },
+              {
+                "name": "makespan_ms",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "n_batches",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "order",
+                "dtype": "int64",
+                "shape": [
+                  0
+                ]
+              },
+              {
+                "name": "pad_count",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "producer_idle_ms",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "rank_of",
+                "dtype": "int64",
+                "shape": [
+                  0
+                ]
+              },
+              {
+                "name": "stall_ms",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "stalls",
+                "dtype": "int64",
+                "shape": [
+                  3
+                ]
+              }
+            ],
+            "exception": {
+              "where": "tolerance",
+              "type": "KeyError",
+              "message": "\"shape 'zero_samples' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+            },
+            "duration_s": 0.0003871999215334654
+          },
+          {
+            "name": "prefetch0_stall_every",
+            "shape_key": "884c5dd36a094aab",
+            "kwargs": {
+              "n_samples": 48,
+              "world_size": 2,
+              "batch_size": 4,
+              "drop_last": true,
+              "prefetch_depth": 0,
+              "producer_ms": 7,
+              "consumer_ms": 2
+            },
+            "status": "skip",
+            "reason": "no error budget could be derived for shape 'prefetch0_stall_every': KeyError: \"shape 'prefetch0_stall_every' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"",
+            "device": "cuda",
+            "rng_seed": 139223718,
+            "reference_outputs": [
+              {
+                "name": "batch_of",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "counts",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "epoch_of",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "makespan_ms",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "n_batches",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "order",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "pad_count",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "producer_idle_ms",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "rank_of",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "stall_ms",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "stalls",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              }
+            ],
+            "exception": {
+              "where": "tolerance",
+              "type": "KeyError",
+              "message": "\"shape 'prefetch0_stall_every' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+            },
+            "duration_s": 0.00044909981079399586
+          },
+          {
+            "name": "prefetch8_no_stall",
+            "shape_key": "274aeccc0f71366e",
+            "kwargs": {
+              "n_samples": 48,
+              "world_size": 2,
+              "batch_size": 4,
+              "drop_last": true,
+              "prefetch_depth": 8,
+              "producer_ms": 1,
+              "consumer_ms": 5
+            },
+            "status": "skip",
+            "reason": "no error budget could be derived for shape 'prefetch8_no_stall': KeyError: \"shape 'prefetch8_no_stall' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"",
+            "device": "cuda",
+            "rng_seed": 659222942,
+            "reference_outputs": [
+              {
+                "name": "batch_of",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "counts",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "epoch_of",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "makespan_ms",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "n_batches",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "order",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "pad_count",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "producer_idle_ms",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "rank_of",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "stall_ms",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "stalls",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              }
+            ],
+            "exception": {
+              "where": "tolerance",
+              "type": "KeyError",
+              "message": "\"shape 'prefetch8_no_stall' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+            },
+            "duration_s": 0.0004616000223904848
+          },
+          {
+            "name": "prefetch2_backpressure",
+            "shape_key": "cc7efd1d77f224c7",
+            "kwargs": {
+              "n_samples": 48,
+              "world_size": 2,
+              "batch_size": 4,
+              "drop_last": true,
+              "prefetch_depth": 2,
+              "producer_ms": 1,
+              "consumer_ms": 5
+            },
+            "status": "skip",
+            "reason": "no error budget could be derived for shape 'prefetch2_backpressure': KeyError: \"shape 'prefetch2_backpressure' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"",
+            "device": "cuda",
+            "rng_seed": 1283391984,
+            "reference_outputs": [
+              {
+                "name": "batch_of",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "counts",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "epoch_of",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "makespan_ms",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "n_batches",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "order",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "pad_count",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "producer_idle_ms",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "rank_of",
+                "dtype": "int64",
+                "shape": [
+                  48
+                ]
+              },
+              {
+                "name": "stall_ms",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "stalls",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              }
+            ],
+            "exception": {
+              "where": "tolerance",
+              "type": "KeyError",
+              "message": "\"shape 'prefetch2_backpressure' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+            },
+            "duration_s": 0.0004453000146895647
+          },
+          {
+            "name": "two_epochs_35x3",
+            "shape_key": "58ba28cee0b2c2fe",
+            "kwargs": {
+              "n_samples": 35,
+              "world_size": 3,
+              "batch_size": 6,
+              "epochs": 2,
+              "seed": 17,
+              "drop_last": false
+            },
+            "status": "skip",
+            "reason": "no error budget could be derived for shape 'two_epochs_35x3': KeyError: \"shape 'two_epochs_35x3' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"",
+            "device": "cuda",
+            "rng_seed": 1488596384,
+            "reference_outputs": [
+              {
+                "name": "batch_of",
+                "dtype": "int64",
+                "shape": [
+                  72
+                ]
+              },
+              {
+                "name": "counts",
+                "dtype": "int64",
+                "shape": [
+                  35
+                ]
+              },
+              {
+                "name": "epoch_of",
+                "dtype": "int64",
+                "shape": [
+                  72
+                ]
+              },
+              {
+                "name": "makespan_ms",
+                "dtype": "int64",
+                "shape": [
+                  6
+                ]
+              },
+              {
+                "name": "n_batches",
+                "dtype": "int64",
+                "shape": [
+                  6
+                ]
+              },
+              {
+                "name": "order",
+                "dtype": "int64",
+                "shape": [
+                  72
+                ]
+              },
+              {
+                "name": "pad_count",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "producer_idle_ms",
+                "dtype": "int64",
+                "shape": [
+                  6
+                ]
+              },
+              {
+                "name": "rank_of",
+                "dtype": "int64",
+                "shape": [
+                  72
+                ]
+              },
+              {
+                "name": "stall_ms",
+                "dtype": "int64",
+                "shape": [
+                  6
+                ]
+              },
+              {
+                "name": "stalls",
+                "dtype": "int64",
+                "shape": [
+                  6
+                ]
+              }
+            ],
+            "exception": {
+              "where": "tolerance",
+              "type": "KeyError",
+              "message": "\"shape 'two_epochs_35x3' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+            },
+            "duration_s": 0.0004942999221384525
+          },
+          {
+            "name": "batch_gt_shard",
+            "shape_key": "ba7421454ddb7d3f",
+            "kwargs": {
+              "n_samples": 9,
+              "world_size": 2,
+              "batch_size": 32,
+              "drop_last": false
+            },
+            "status": "skip",
+            "reason": "no error budget could be derived for shape 'batch_gt_shard': KeyError: \"shape 'batch_gt_shard' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\"",
+            "device": "cuda",
+            "rng_seed": 980690456,
+            "reference_outputs": [
+              {
+                "name": "batch_of",
+                "dtype": "int64",
+                "shape": [
+                  10
+                ]
+              },
+              {
+                "name": "counts",
+                "dtype": "int64",
+                "shape": [
+                  9
+                ]
+              },
+              {
+                "name": "epoch_of",
+                "dtype": "int64",
+                "shape": [
+                  10
+                ]
+              },
+              {
+                "name": "makespan_ms",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "n_batches",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "order",
+                "dtype": "int64",
+                "shape": [
+                  10
+                ]
+              },
+              {
+                "name": "pad_count",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "producer_idle_ms",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "rank_of",
+                "dtype": "int64",
+                "shape": [
+                  10
+                ]
+              },
+              {
+                "name": "stall_ms",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "stalls",
+                "dtype": "int64",
+                "shape": [
+                  2
+                ]
+              }
+            ],
+            "exception": {
+              "where": "tolerance",
+              "type": "KeyError",
+              "message": "\"shape 'batch_gt_shard' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+            },
+            "duration_s": 0.00041470001451671124
+          }
+        ],
+        "shapes_evaluated": [
+          "even_64x4x16",
+          "ragged_100x3_pad",
+          "ragged_100x3_drop",
+          "ragged_45x4_shorttail",
+          "empty_shards_2x4",
+          "pad_from_two_2x4",
+          "zero_samples",
+          "prefetch0_stall_every",
+          "prefetch8_no_stall",
+          "prefetch2_backpressure",
+          "two_epochs_35x3",
+          "batch_gt_shard"
+        ],
+        "shapes_not_run": [
+          {
+            "name": "even_64x4x16",
+            "reason": "no error budget could be derived for shape 'even_64x4x16': KeyError: \"shape 'even_64x4x16' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+          },
+          {
+            "name": "ragged_100x3_pad",
+            "reason": "no error budget could be derived for shape 'ragged_100x3_pad': KeyError: \"shape 'ragged_100x3_pad' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+          },
+          {
+            "name": "ragged_100x3_drop",
+            "reason": "no error budget could be derived for shape 'ragged_100x3_drop': KeyError: \"shape 'ragged_100x3_drop' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+          },
+          {
+            "name": "ragged_45x4_shorttail",
+            "reason": "no error budget could be derived for shape 'ragged_45x4_shorttail': KeyError: \"shape 'ragged_45x4_shorttail' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+          },
+          {
+            "name": "empty_shards_2x4",
+            "reason": "no error budget could be derived for shape 'empty_shards_2x4': KeyError: \"shape 'empty_shards_2x4' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+          },
+          {
+            "name": "pad_from_two_2x4",
+            "reason": "no error budget could be derived for shape 'pad_from_two_2x4': KeyError: \"shape 'pad_from_two_2x4' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+          },
+          {
+            "name": "zero_samples",
+            "reason": "no error budget could be derived for shape 'zero_samples': KeyError: \"shape 'zero_samples' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+          },
+          {
+            "name": "prefetch0_stall_every",
+            "reason": "no error budget could be derived for shape 'prefetch0_stall_every': KeyError: \"shape 'prefetch0_stall_every' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+          },
+          {
+            "name": "prefetch8_no_stall",
+            "reason": "no error budget could be derived for shape 'prefetch8_no_stall': KeyError: \"shape 'prefetch8_no_stall' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+          },
+          {
+            "name": "prefetch2_backpressure",
+            "reason": "no error budget could be derived for shape 'prefetch2_backpressure': KeyError: \"shape 'prefetch2_backpressure' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+          },
+          {
+            "name": "two_epochs_35x3",
+            "reason": "no error budget could be derived for shape 'two_epochs_35x3': KeyError: \"shape 'two_epochs_35x3' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+          },
+          {
+            "name": "batch_gt_shard",
+            "reason": "no error budget could be derived for shape 'batch_gt_shard': KeyError: \"shape 'batch_gt_shard' declares no dtype and neither the reference output nor the inputs expose a floating dtype to derive a budget from\""
+          }
+        ],
+        "first_break_shape": null,
+        "first_break": null,
+        "summary": {
+          "n_shapes": 12,
+          "n_passed": 0,
+          "n_failed": 0,
+          "n_not_run": 12,
+          "n_compared": 0
+        }
+      },
+      "duration_s": 0.007152500096708536,
+      "capabilities_used": []
+    },
+    {
+      "oracle": "O3",
+      "verdict": "PASS",
+      "reason": "",
+      "evidence": {
+        "checks": {
+          "static_denylist": {
+            "check": "static_denylist",
+            "verdict": "PASS",
+            "detail": "no denylisted symbol and no dynamic name construction; 2 import alias(es) resolved",
+            "duration_s": 0.005588,
+            "denylist": [
+              "torch.utils.data.DistributedSampler",
+              "torch.utils.data.DataLoader",
+              "torch.utils.data.RandomSampler",
+              "torch.randperm",
+              "random.shuffle",
+              "random.sample",
+              "numpy.random",
+              "crucible.seeds.dataloader"
+            ],
+            "denylist_empty": false,
+            "aliases": {
+              "math": "math",
+              "torch": "torch"
+            },
+            "hits": [],
+            "hit_count": 0
+          },
+          "randomized_inputs": {
+            "check": "randomized_inputs",
+            "verdict": "SKIP",
+            "detail": "no available shape has a reference output that depends on the input (tried ['empty_shards_2x4', 'pad_from_two_2x4', 'batch_gt_shard', 'zero_samples', 'even_64x4x16', 'ragged_100x3_pad', 'ragged_100x3_drop', 'ragged_45x4_shorttail', 'prefetch0_stall_every', 'prefetch8_no_stall', 'prefetch2_backpressure', 'two_epochs_35x3']); input randomisation cannot be exercised here and identical output would prove nothing",
+            "duration_s": 0.029599,
+            "shapes_rejected_as_degenerate": [
+              "empty_shards_2x4",
+              "pad_from_two_2x4",
+              "batch_gt_shard",
+              "zero_samples",
+              "even_64x4x16",
+              "ragged_100x3_pad",
+              "ragged_100x3_drop",
+              "ragged_45x4_shorttail",
+              "prefetch0_stall_every",
+              "prefetch8_no_stall",
+              "prefetch2_backpressure",
+              "two_epochs_35x3"
+            ],
+            "input_seeds": [
+              1205325868,
+              1405434163
+            ]
+          },
+          "held_out_shapes": {
+            "check": "held_out_shapes",
+            "verdict": "PASS",
+            "detail": "agrees with the reference on all 1 withheld shape(s)",
+            "duration_s": 2.048347,
+            "held_out": [
+              "zero_samples(24c71ae890cb74c9)"
+            ],
+            "shown_in_prompt": [
+              "empty_shards_2x4(3393183e4f7c7cd9)",
+              "pad_from_two_2x4(42a5680009188541)",
+              "batch_gt_shard(ba7421454ddb7d3f)",
+              "ragged_45x4_shorttail(60af97228697d148)",
+              "prefetch0_stall_every(884c5dd36a094aab)",
+              "prefetch2_backpressure(cc7efd1d77f224c7)",
+              "prefetch8_no_stall(274aeccc0f71366e)",
+              "even_64x4x16(465cd13f27420340)",
+              "two_epochs_35x3(58ba28cee0b2c2fe)",
+              "ragged_100x3_drop(5fe881711e62fca3)",
+              "ragged_100x3_pad(0fabc5b8c0612ad6)"
+            ],
+            "per_shape": [
+              {
+                "shape": "zero_samples(24c71ae890cb74c9)",
+                "shape_name": "zero_samples",
+                "kwargs": {
+                  "n_samples": 0,
+                  "world_size": 3,
+                  "batch_size": 4,
+                  "drop_last": false
+                },
+                "input_seed": 610783398,
+                "ok": true,
+                "max_rel_err": 0.0,
+                "detail": ""
+              }
+            ],
+            "n_failed": 0
+          },
+          "output_liveness": {
+            "check": "output_liveness",
+            "verdict": "PASS",
+            "detail": "the output is checksummed, changes when an input element changes, is not a copy of an input, and is fully written (skipped: ['input_sensitivity'])",
+            "duration_s": 6.270704,
+            "shape": "zero_samples(24c71ae890cb74c9)",
+            "input_seed": 2073715058,
+            "base_run": {
+              "ok": true,
+              "checksums": {
+                "batch_of": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                "counts": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                "epoch_of": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                "makespan_ms": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9",
+                "n_batches": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9",
+                "order": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                "pad_count": "45adabbfed6d5c15e65388c91d304b353a63747b2e17a7860a030a4b2b26246b",
+                "producer_idle_ms": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9",
+                "rank_of": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                "stall_ms": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9",
+                "stalls": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9"
+              },
+              "error": "",
+              "duration_s": 2.026299,
+              "input_seed": 2073715058
+            },
+            "consumer": "the sandbox child hashes every output byte, so the result must be materialised and cannot be dead-code-eliminated",
+            "input_sensitivity": {
+              "fired": false,
+              "skip_reason": "no tensor input to perturb"
+            },
+            "passthrough": {
+              "fired": false,
+              "detail": "no output is a verbatim copy of an input"
+            },
+            "uninitialised_memory": {
+              "fired": false,
+              "runs": [
+                {
+                  "ok": true,
+                  "checksums": {
+                    "batch_of": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                    "counts": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                    "epoch_of": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                    "makespan_ms": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9",
+                    "n_batches": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9",
+                    "order": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                    "pad_count": "45adabbfed6d5c15e65388c91d304b353a63747b2e17a7860a030a4b2b26246b",
+                    "producer_idle_ms": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9",
+                    "rank_of": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                    "stall_ms": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9",
+                    "stalls": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9"
+                  },
+                  "error": "",
+                  "duration_s": 2.134177,
+                  "input_seed": 2073715058,
+                  "fill": "float=float('nan'), int=-2147483648"
+                },
+                {
+                  "ok": true,
+                  "checksums": {
+                    "batch_of": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                    "counts": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                    "epoch_of": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                    "makespan_ms": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9",
+                    "n_batches": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9",
+                    "order": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                    "pad_count": "45adabbfed6d5c15e65388c91d304b353a63747b2e17a7860a030a4b2b26246b",
+                    "producer_idle_ms": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9",
+                    "rank_of": "4b9af4b1e2313aba5a9a139ae3ecfc8fcae09a440c65802207a26775700f6eca",
+                    "stall_ms": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9",
+                    "stalls": "c820e042821c1b631c9d55322ecfa330b0ca53bdac21eb9d5b274e17cf7c71a9"
+                  },
+                  "error": "",
+                  "duration_s": 2.107839,
+                  "input_seed": 2073715058,
+                  "fill": "float=-98765.4375, int=1234567"
+                }
+              ],
+              "method": "torch.empty/empty_like/empty_strided/Tensor.new_empty and numpy.empty/empty_like are wrapped to write a known fill, so any element the candidate leaves unwritten differs between the two runs",
+              "detail": "identical output under both fills; every output element was written"
+            },
+            "fired_subchecks": [],
+            "skipped_subchecks": [
+              "input_sensitivity"
+            ]
+          },
+          "timing_sanity": {
+            "check": "timing_sanity",
+            "verdict": "SKIP",
+            "detail": "no shape could be timed: zero_samples: bytes_moved returned 0",
+            "duration_s": 0.000153,
+            "bandwidth_source": "crucible.oracles.o2_perf.measure_achievable_bandwidth().bytes_per_s",
+            "achievable_bandwidth_bytes_per_s": 146394640861.23553,
+            "per_shape": [],
+            "skipped_shapes": [
+              "zero_samples: bytes_moved returned 0"
+            ]
+          }
+        },
+        "fired": [],
+        "errored": [],
+        "skipped": {
+          "randomized_inputs": "no available shape has a reference output that depends on the input (tried ['empty_shards_2x4', 'pad_from_two_2x4', 'batch_gt_shard', 'zero_samples', 'even_64x4x16', 'ragged_100x3_pad', 'ragged_100x3_drop', 'ragged_45x4_shorttail', 'prefetch0_stall_every', 'prefetch8_no_stall', 'prefetch2_backpressure', 'two_epochs_35x3']); input randomisation cannot be exercised here and identical output would prove nothing",
+          "timing_sanity": "no shape could be timed: zero_samples: bytes_moved returned 0"
+        },
+        "passed": [
+          "static_denylist",
+          "held_out_shapes",
+          "output_liveness"
+        ]
+      },
+      "duration_s": 8.354534500045702,
+      "capabilities_used": []
+    }
+  ],
+  "environment": {
+    "caps": {
+      "cuda": true,
+      "cuda_device_count": 1,
+      "device_name": "NVIDIA T1000 8GB",
+      "cuda_version": "12.4",
+      "triton": false,
+      "triton_error": "import triton failed: ImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.",
+      "ncu": "C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2024.2.0\\ncu.BAT",
+      "can_lock_clocks": false,
+      "gloo": true,
+      "nccl": false,
+      "cxx_compiler": null,
+      "inductor_cpu": false,
+      "inductor_cuda": false,
+      "torch_version": "2.6.0+cu124",
+      "platform": "Windows-10-10.0.26200-SP0",
+      "details": {
+        "can_lock_clocks": "The current user does not have permission to change clocks for GPU 00000000:01:00.0.\nTerminating early due to previous errors.",
+        "cxx_compiler": "none of cl/g++/gcc/clang++/clang on PATH",
+        "inductor_cpu": "BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n",
+        "inductor_cuda": "BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n",
+        "nccl": "torch.distributed.is_nccl_available() returned False",
+        "triton": "import triton failed: ImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed."
+      }
+    },
+    "python": "3.11.5 (Windows-10-10.0.26200-SP0)",
+    "torch": "2.6.0+cu124",
+    "host": "Archana-PC",
+    "utc": "2026-08-26T19:06:14+00:00"
+  },
+  "duration_s": 8.36306650005281,
+  "candidate_sha256": "1b07ff62348350ed13a0ef4ca2a04c5f16a352b8198bb166dc7df4cb3af642aa"
+}

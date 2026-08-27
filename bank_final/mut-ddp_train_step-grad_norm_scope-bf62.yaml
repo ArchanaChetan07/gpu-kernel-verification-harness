@@ -1,0 +1,353 @@
+task_id: mut-ddp_train_step-grad_norm_scope-bf62
+schema_version: '1.0'
+created_utc: '2026-08-26T18:09:39+00:00'
+seed_source:
+  seed_id: collectives.ddp_train_step
+  module: crucible.seeds.collectives
+  entry: train_step
+  content_sha256: 1310a06a39bef450367c37ecbc25aef694236389f3268bd8155188cccd9b6c0d
+domain: distributed
+failure_tier: T6
+mutation:
+  cls: grad_norm_scope
+  site: collectives.ddp_train_step:Assign@83:8#0
+  params:
+    tensor: local_sq
+    collective: _all_reduce_sum
+    form: functional
+    site: Assign@83:8#0
+  description: Remove the cross-rank reduction of the squared gradient norm, so clipping uses a per-shard norm and each rank scales its gradients differently.
+baseline_code: "\"\"\"Single-process simulation of one data-parallel + FSDP training step.\"\"\"\nimport torch\n\ndef _all_reduce_sum(parts, world_size):\n    \"\"\"SUM all-reduce over ``world_size`` ranks.\n\n    Every rank must contribute exactly once. A rank that skips the collective\n    deadlocks a real process group, so a participant count that does not match\n    the world size is raised here rather than summed over whoever showed up.\n    \"\"\"\n    if len(parts) != world_size:\n        raise RuntimeError('all-reduce desync: %d participants for world_size %d' % (len(parts), world_size))\n    total = parts[0].clone()\n    for p in parts[1:]:\n        total = total + p\n    return total\n\ndef _split_shards(x, y, shard_sizes):\n    \"\"\"Contiguous data-parallel split. A shard may legitimately be empty.\"\"\"\n    shards = []\n    off = 0\n    for n in shard_sizes:\n        n = int(n)\n        shards.append((x[off:off + n], y[off:off + n]))\n        off += n\n    return shards\n\ndef _shard_flat(flat, n_shards):\n    \"\"\"Contiguous parameter shards, FSDP style. The tail shard may be short and\n    a shard may be empty when there are more ranks than elements.\"\"\"\n    numel = int(flat.shape[0])\n    per = (numel + n_shards - 1) // n_shards\n    out = []\n    for r in range(n_shards):\n        lo = min(r * per, numel)\n        hi = min(lo + per, numel)\n        out.append(flat[lo:hi])\n    return out\n\ndef _local_grad_and_loss(xs, ys, w):\n    \"\"\"Cross-entropy gradient and loss SUM for one shard, computed by hand.\"\"\"\n    logits = xs @ w\n    shifted = logits - logits.max(dim=1, keepdim=True).values\n    exp = torch.exp(shifted)\n    probs = exp / exp.sum(dim=1, keepdim=True)\n    picked = probs.gather(1, ys.view(-1, 1)).clamp_min(1e-30)\n    loss_sum = -torch.log(picked).sum()\n    onehot = torch.zeros_like(probs)\n    onehot.scatter_(1, ys.view(-1, 1), 1.0)\n    grad_sum = xs.transpose(0, 1) @ (probs - onehot)\n    return (grad_sum, loss_sum)\n\ndef train_step(x, y, w0, shard_sizes, steps=8, lr=0.5, max_grad_norm=0.05, n_param_shards=2, accum_dtype='float32'):\n    \"\"\"Run ``steps`` DDP steps over a simulated ``len(shard_sizes)``-rank group.\"\"\"\n    acc = getattr(torch, accum_dtype)\n    world_size = len(shard_sizes)\n    total_n = 0\n    for n in shard_sizes:\n        total_n += int(n)\n    if total_n <= 0:\n        raise ValueError('global batch is empty; every shard has zero samples')\n    xf = x.to(acc)\n    w = w0.to(acc).clone()\n    losses = []\n    norms = []\n    for _ in range(steps):\n        grad_parts = []\n        loss_parts = []\n        for xs, ys in _split_shards(xf, y, shard_sizes):\n            if int(xs.shape[0]) == 0:\n                g = torch.zeros_like(w)\n                l = torch.zeros((), dtype=acc)\n            else:\n                g, l = _local_grad_and_loss(xs, ys, w)\n            grad_parts.append(g)\n            loss_parts.append(l)\n        grad = _all_reduce_sum(grad_parts, world_size) / total_n\n        loss = _all_reduce_sum(loss_parts, world_size) / total_n\n        param_shards = _shard_flat(grad.reshape(-1), n_param_shards)\n        local_sq = []\n        for s in param_shards:\n            local_sq.append((s * s).sum())\n        total_sq = _all_reduce_sum(local_sq, n_param_shards)\n        global_norm = torch.sqrt(total_sq)\n        if global_norm > max_grad_norm:\n            grad = grad * (max_grad_norm / (global_norm + 1e-06))\n        w = w - lr * grad\n        losses.append(loss)\n        norms.append(global_norm)\n    return {'losses': torch.stack(losses).to(torch.float32), 'grad_norms': torch.stack(norms).to(torch.float32), 'w': w.to(torch.float32)}\n"
+mutant_code: "\"\"\"Single-process simulation of one data-parallel + FSDP training step.\"\"\"\nimport torch\n\ndef _all_reduce_sum(parts, world_size):\n    \"\"\"SUM all-reduce over ``world_size`` ranks.\n\n    Every rank must contribute exactly once. A rank that skips the collective\n    deadlocks a real process group, so a participant count that does not match\n    the world size is raised here rather than summed over whoever showed up.\n    \"\"\"\n    if len(parts) != world_size:\n        raise RuntimeError('all-reduce desync: %d participants for world_size %d' % (len(parts), world_size))\n    total = parts[0].clone()\n    for p in parts[1:]:\n        total = total + p\n    return total\n\ndef _split_shards(x, y, shard_sizes):\n    \"\"\"Contiguous data-parallel split. A shard may legitimately be empty.\"\"\"\n    shards = []\n    off = 0\n    for n in shard_sizes:\n        n = int(n)\n        shards.append((x[off:off + n], y[off:off + n]))\n        off += n\n    return shards\n\ndef _shard_flat(flat, n_shards):\n    \"\"\"Contiguous parameter shards, FSDP style. The tail shard may be short and\n    a shard may be empty when there are more ranks than elements.\"\"\"\n    numel = int(flat.shape[0])\n    per = (numel + n_shards - 1) // n_shards\n    out = []\n    for r in range(n_shards):\n        lo = min(r * per, numel)\n        hi = min(lo + per, numel)\n        out.append(flat[lo:hi])\n    return out\n\ndef _local_grad_and_loss(xs, ys, w):\n    \"\"\"Cross-entropy gradient and loss SUM for one shard, computed by hand.\"\"\"\n    logits = xs @ w\n    shifted = logits - logits.max(dim=1, keepdim=True).values\n    exp = torch.exp(shifted)\n    probs = exp / exp.sum(dim=1, keepdim=True)\n    picked = probs.gather(1, ys.view(-1, 1)).clamp_min(1e-30)\n    loss_sum = -torch.log(picked).sum()\n    onehot = torch.zeros_like(probs)\n    onehot.scatter_(1, ys.view(-1, 1), 1.0)\n    grad_sum = xs.transpose(0, 1) @ (probs - onehot)\n    return (grad_sum, loss_sum)\n\ndef train_step(x, y, w0, shard_sizes, steps=8, lr=0.5, max_grad_norm=0.05, n_param_shards=2, accum_dtype='float32'):\n    \"\"\"Run ``steps`` DDP steps over a simulated ``len(shard_sizes)``-rank group.\"\"\"\n    acc = getattr(torch, accum_dtype)\n    world_size = len(shard_sizes)\n    total_n = 0\n    for n in shard_sizes:\n        total_n += int(n)\n    if total_n <= 0:\n        raise ValueError('global batch is empty; every shard has zero samples')\n    xf = x.to(acc)\n    w = w0.to(acc).clone()\n    losses = []\n    norms = []\n    for _ in range(steps):\n        grad_parts = []\n        loss_parts = []\n        for xs, ys in _split_shards(xf, y, shard_sizes):\n            if int(xs.shape[0]) == 0:\n                g = torch.zeros_like(w)\n                l = torch.zeros((), dtype=acc)\n            else:\n                g, l = _local_grad_and_loss(xs, ys, w)\n            grad_parts.append(g)\n            loss_parts.append(l)\n        grad = _all_reduce_sum(grad_parts, world_size) / total_n\n        loss = _all_reduce_sum(loss_parts, world_size) / total_n\n        param_shards = _shard_flat(grad.reshape(-1), n_param_shards)\n        local_sq = []\n        for s in param_shards:\n            local_sq.append((s * s).sum())\n        total_sq = local_sq[0]\n        global_norm = torch.sqrt(total_sq)\n        if global_norm > max_grad_norm:\n            grad = grad * (max_grad_norm / (global_norm + 1e-06))\n        w = w - lr * grad\n        losses.append(loss)\n        norms.append(global_norm)\n    return {'losses': torch.stack(losses).to(torch.float32), 'grad_norms': torch.stack(norms).to(torch.float32), 'w': w.to(torch.float32)}\n"
+ground_truth_diff: "--- a/train_step.py (mutant)\n+++ b/train_step.py (baseline)\n@@ -80,7 +80,7 @@\n         local_sq = []\n         for s in param_shards:\n             local_sq.append((s * s).sum())\n-        total_sq = local_sq[0]\n+        total_sq = _all_reduce_sum(local_sq, n_param_shards)\n         global_norm = torch.sqrt(total_sq)\n         if global_norm > max_grad_norm:\n             grad = grad * (max_grad_norm / (global_norm + 1e-06))\n"
+witness:
+  shape:
+    name: fsdp_more_ranks_than_params
+    kwargs:
+      shard_sizes:
+      - 8
+      - 8
+      d: 2
+      k: 2
+      steps: 6
+      n_param_shards: 9
+  max_abs_err: 0.1272124946117401
+  max_rel_err: 0.6085016639883255
+  tolerance: 2.800784140699084e-06
+  baseline_checksum: b20b4a5c2c24d1f0613943d29647a6e0866a0bb5048aa213881fb9a2d5609b60
+  mutant_checksum: 822c8c9ca6eb60351d8a82f7d0060f7e49bf4e211aadd773906afca0c909be81
+  kind: loss_curve
+  detail: 'output ''grad_norms'': 6/6 elements outside the budget (max_abs=0.127212, max_rel=0.409965, rtol=2.8e-06); output ''losses'': 5/6 elements outside the budget (max_abs=0.0170903, max_rel=0.0241151, rtol=2.8e-06); output ''w'': 4/4 elements outside the budget (max_abs=0.0478561, max_rel=0.608502, rtol=2.8e-06) | budget: fp32 eps=5.96e-08, K=138, stochastic growth sqrt(K)=11.75, safety=4 -> rel=2.80e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.80e-06 [crucible.oracles.tolerance.derive]'
+detect_shapes:
+- name: fsdp_more_ranks_than_params
+  kwargs:
+    shard_sizes:
+    - 8
+    - 8
+    d: 2
+    k: 2
+    steps: 6
+    n_param_shards: 9
+- name: dp2_noclip_normonly
+  kwargs:
+    shard_sizes:
+    - 12
+    - 12
+    d: 8
+    k: 4
+    steps: 6
+    n_param_shards: 2
+    max_grad_norm: 1000.0
+- name: fsdp5_ragged_params
+  kwargs:
+    shard_sizes:
+    - 10
+    - 6
+    - 6
+    d: 7
+    k: 3
+    steps: 8
+    n_param_shards: 5
+- name: dp3_empty_middle
+  kwargs:
+    shard_sizes:
+    - 13
+    - 0
+    - 9
+    d: 8
+    k: 4
+    steps: 8
+    n_param_shards: 2
+- name: dp2_even_clip
+  kwargs:
+    shard_sizes:
+    - 16
+    - 16
+    d: 8
+    k: 4
+    steps: 8
+    n_param_shards: 2
+- name: dp3_uneven
+  kwargs:
+    shard_sizes:
+    - 21
+    - 7
+    - 4
+    d: 8
+    k: 4
+    steps: 8
+    n_param_shards: 2
+decoy_shapes:
+- name: dp1_single_decoy
+  kwargs:
+    shard_sizes:
+    - 24
+    d: 8
+    k: 4
+    steps: 6
+    n_param_shards: 1
+prompt: "# Debugging task: `train_step`\n\nThe `train_step` implementation below is a distributed routine that is believed to be\ncorrect. It is not. On at least one input it silently disagrees with an\nindependent reference implementation, and the disagreement is not visible on the\nshapes it was checked on.\n\n## Implementation under test\n\n```python\n\"\"\"Single-process simulation of one data-parallel + FSDP training step.\"\"\"\nimport torch\n\ndef _all_reduce_sum(parts, world_size):\n    \"\"\"SUM all-reduce over ``world_size`` ranks.\n\n    Every rank must contribute exactly once. A rank that skips the collective\n    deadlocks a real process group, so a participant count that does not match\n    the world size is raised here rather than summed over whoever showed up.\n    \"\"\"\n    if len(parts) != world_size:\n        raise RuntimeError('all-reduce desync: %d participants for world_size %d' % (len(parts), world_size))\n    total = parts[0].clone()\n    for p in parts[1:]:\n        total = total + p\n    return total\n\ndef _split_shards(x, y, shard_sizes):\n    \"\"\"Contiguous data-parallel split. A shard may legitimately be empty.\"\"\"\n    shards = []\n    off = 0\n    for n in shard_sizes:\n        n = int(n)\n        shards.append((x[off:off + n], y[off:off + n]))\n        off += n\n    return shards\n\ndef _shard_flat(flat, n_shards):\n    \"\"\"Contiguous parameter shards, FSDP style. The tail shard may be short and\n    a shard may be empty when there are more ranks than elements.\"\"\"\n    numel = int(flat.shape[0])\n    per = (numel + n_shards - 1) // n_shards\n    out = []\n    for r in range(n_shards):\n        lo = min(r * per, numel)\n        hi = min(lo + per, numel)\n        out.append(flat[lo:hi])\n    return out\n\ndef _local_grad_and_loss(xs, ys, w):\n    \"\"\"Cross-entropy gradient and loss SUM for one shard, computed by hand.\"\"\"\n    logits = xs @ w\n    shifted = logits - logits.max(dim=1, keepdim=True).values\n    exp = torch.exp(shifted)\n    probs = exp / exp.sum(dim=1, keepdim=True)\n    picked = probs.gather(1, ys.view(-1, 1)).clamp_min(1e-30)\n    loss_sum = -torch.log(picked).sum()\n    onehot = torch.zeros_like(probs)\n    onehot.scatter_(1, ys.view(-1, 1), 1.0)\n    grad_sum = xs.transpose(0, 1) @ (probs - onehot)\n    return (grad_sum, loss_sum)\n\ndef train_step(x, y, w0, shard_sizes, steps=8, lr=0.5, max_grad_norm=0.05, n_param_shards=2, accum_dtype='float32'):\n    \"\"\"Run ``steps`` DDP steps over a simulated ``len(shard_sizes)``-rank group.\"\"\"\n    acc = getattr(torch, accum_dtype)\n    world_size = len(shard_sizes)\n    total_n = 0\n    for n in shard_sizes:\n        total_n += int(n)\n    if total_n <= 0:\n        raise ValueError('global batch is empty; every shard has zero samples')\n    xf = x.to(acc)\n    w = w0.to(acc).clone()\n    losses = []\n    norms = []\n    for _ in range(steps):\n        grad_parts = []\n        loss_parts = []\n        for xs, ys in _split_shards(xf, y, shard_sizes):\n            if int(xs.shape[0]) == 0:\n                g = torch.zeros_like(w)\n                l = torch.zeros((), dtype=acc)\n            else:\n                g, l = _local_grad_and_loss(xs, ys, w)\n            grad_parts.append(g)\n            loss_parts.append(l)\n        grad = _all_reduce_sum(grad_parts, world_size) / total_n\n        loss = _all_reduce_sum(loss_parts, world_size) / total_n\n        param_shards = _shard_flat(grad.reshape(-1), n_param_shards)\n        local_sq = []\n        for s in param_shards:\n            local_sq.append((s * s).sum())\n        total_sq = local_sq[0]\n        global_norm = torch.sqrt(total_sq)\n        if global_norm > max_grad_norm:\n            grad = grad * (max_grad_norm / (global_norm + 1e-06))\n        w = w - lr * grad\n        losses.append(loss)\n        norms.append(global_norm)\n    return {'losses': torch.stack(losses).to(torch.float32), 'grad_norms': torch.stack(norms).to(torch.float32), 'w': w.to(torch.float32)}\n```\n\n## Shapes it was checked on\n\nEach of these was executed and agreed with an independent reference to within the derived error budget, so none of them exposes the defect:\n\n- `dp1_single_decoy`: d=8, k=4, n_param_shards=1, shard_sizes=[24], steps=6\n\n## What to produce\n\n1. **Root cause.** Which expression is wrong, and what it does wrong.\n2. **Trigger class.** What property an input must have for the defect to show,\n   and why every shape above lacks that property.\n3. **Fix.** A corrected `train_step` with the same name and the same signature.\n\n## Rules\n\n- Pure PyTorch. Do not import or call: `torch.nn.utils.clip_grad_norm_`, `torch.nn.utils.clip_grad_value_`, `torch.autograd.grad`, `torch.autograd.backward`, `torch.nn.functional.cross_entropy`, `torch.nn.functional.nll_loss`, `torch.nn.functional.log_softmax`, `torch.nn.CrossEntropyLoss`, `torch.optim`, `crucible.seeds.collectives`.\n- Do not special-case shapes, memoise inputs, or return a precomputed answer.\n- Your submission is executed on withheld shapes chosen specifically to expose\n  this defect, with freshly seeded inputs. Reproducing the behaviour on the\n  shapes above is necessary and not sufficient.\n"
+oracles:
+- O1
+- O3
+- O5
+rubric:
+  criteria:
+  - id: numerics_within_budget
+    weight: 4.0
+    anchors:
+      '0': the fixed implementation still exceeds the derived error budget
+      '3': within the budget on every graded shape
+      '5': within the budget with margin, on the witness shape included
+    auto_probe: oracle.O1.max_rel_err
+    probe_thresholds:
+    - - 2.800784140699084e-06
+      - 5
+    - - 0.00028007841406990836
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  - id: witness_shape_fixed
+    weight: 3.0
+    anchors:
+      '0': the withheld shape still reproduces the defect
+      '3': the withheld shape is fixed
+      '5': the withheld shape is fixed and the absolute error is at reference level
+    auto_probe: oracle.O1.max_abs_err
+    probe_thresholds:
+    - - 0.0001272124946117401
+      - 5
+    - - 0.012721249461174013
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  - id: root_cause_explanation
+    weight: 2.0
+    anchors:
+      '0': no mechanism given, or the wrong expression blamed
+      '3': names the responsible expression
+      '5': names the expression and derives why the given shapes hide it
+    auto_probe: null
+    probe_thresholds: []
+    machine_probed: false
+  - id: fix_minimality
+    weight: 1.0
+    anchors:
+      '0': rewrites unrelated code or changes the interface
+      '3': a local fix with some incidental change
+      '5': the minimal edit that removes the defect
+    auto_probe: null
+    probe_thresholds: []
+    machine_probed: false
+  - id: multi_rank_agreement
+    weight: 3.0
+    anchors:
+      '0': the N-rank loss curve still diverges from the 1-rank curve
+      '3': the curves agree within the measured noise floor
+      '5': the curves agree well inside the measured noise floor
+    auto_probe: oracle.O5.max_loss_delta
+    probe_thresholds:
+    - - 1.0e-06
+      - 5
+    - - 0.001
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  version: '1.0'
+calibration: null
+provenance:
+  generator: crucible.mutate.engine
+  generator_version: '1.0'
+  host: Archana-PC
+  python: 3.11.5
+  utc: '2026-08-26T18:09:39+00:00'
+  device: cuda
+  capabilities: torch 2.6.0+cu124 on Windows-10-10.0.26200-SP0; NVIDIA T1000 8GB; cuda=True triton=False ncu=yes gloo=True nccl=False inductor(cpu=False,cuda=False)
+  seed_module: crucible.seeds.collectives
+  seed_tiers:
+  - T2
+  - T3
+  - T6
+  class_tier: T6
+  site:
+    lineno: 83
+    col_offset: 8
+    node_type: Assign
+    ordinal: 0
+    label: total_sq = _all_reduce_sum(local_sq, n_param_shards)
+    meta:
+      tensor: local_sq
+      collective: _all_reduce_sum
+      form: functional
+  seed_source_sha256: 1310a06a39bef450367c37ecbc25aef694236389f3268bd8155188cccd9b6c0d
+  canonical_baseline_sha256: d4d0c6ffba7f008566c5b36fd5ca6cc0c31db0f4f7dd2e8f748e563c4cb02e81
+  mutant_sha256: bf62091004b75b6ae9913b8f9d5eaed4e19ac63d61dc77ec9ce6cba434bfa128
+  shapes_evaluated: 7
+  shape_outcomes:
+  - shape: fsdp_more_ranks_than_params
+    kwargs:
+      shard_sizes:
+      - 8
+      - 8
+      d: 2
+      k: 2
+      steps: 6
+      n_param_shards: 9
+    usable: true
+    differs: true
+    kind: loss_curve
+    max_abs_err: 0.1272124946117401
+    max_rel_err: 0.6085016639883255
+    tolerance: 2.800784140699084e-06
+    detail: 'output ''grad_norms'': 6/6 elements outside the budget (max_abs=0.127212, max_rel=0.409965, rtol=2.8e-06); output ''losses'': 5/6 elements outside the budget (max_abs=0.0170903, max_rel=0.0241151, rtol=2.8e-06); output ''w'': 4/4 elements outside the budget (max_abs=0.0478561, max_rel=0.608502, rtol=2.8e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.8859
+  - shape: dp1_single_decoy
+    kwargs:
+      shard_sizes:
+      - 24
+      d: 8
+      k: 4
+      steps: 6
+      n_param_shards: 1
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 4.447640921158226e-06
+    detail: 'baseline and mutant agree within the derived budget (rtol=4.45e-06); fp32 eps=5.96e-08, K=348, stochastic growth sqrt(K)=18.65, safety=4 -> rel=4.45e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=4.45e-06'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.8796
+  - shape: dp2_noclip_normonly
+    kwargs:
+      shard_sizes:
+      - 12
+      - 12
+      d: 8
+      k: 4
+      steps: 6
+      n_param_shards: 2
+      max_grad_norm: 1000.0
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 0.09908899664878845
+    max_rel_err: 0.35498636784850457
+    tolerance: 4.046097457045827e-06
+    detail: 'output ''grad_norms'': 6/6 elements outside the budget (max_abs=0.099089, max_rel=0.354986, rtol=4.05e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.9183
+  - shape: fsdp5_ragged_params
+    kwargs:
+      shard_sizes:
+      - 10
+      - 6
+      - 6
+      d: 7
+      k: 3
+      steps: 8
+      n_param_shards: 5
+    usable: true
+    differs: true
+    kind: loss_curve
+    max_abs_err: 0.2652069926261902
+    max_rel_err: 30.788665201617036
+    tolerance: 4.21131175342934e-06
+    detail: 'output ''grad_norms'': 8/8 elements outside the budget (max_abs=0.265207, max_rel=0.590544, rtol=4.21e-06); output ''losses'': 7/8 elements outside the budget (max_abs=0.076696, max_rel=0.0693976, rtol=4.21e-06); output ''w'': 21/21 elements outside the budget (max_abs=0.0955938, max_rel=30.7887, rtol=4.21e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.9273
+  - shape: dp3_empty_middle
+    kwargs:
+      shard_sizes:
+      - 13
+      - 0
+      - 9
+      d: 8
+      k: 4
+      steps: 8
+      n_param_shards: 2
+    usable: true
+    differs: true
+    kind: loss_curve
+    max_abs_err: 0.10024389624595642
+    max_rel_err: 81.73685519642932
+    tolerance: 4.76837158203125e-06
+    detail: 'output ''grad_norms'': 8/8 elements outside the budget (max_abs=0.100244, max_rel=0.313245, rtol=4.77e-06); output ''losses'': 7/8 elements outside the budget (max_abs=0.019762, max_rel=0.0151976, rtol=4.77e-06); output ''w'': 32/32 elements outside the budget (max_abs=0.0252487, max_rel=81.7369, rtol=4.77e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.0035
+  - shape: dp2_even_clip
+    kwargs:
+      shard_sizes:
+      - 16
+      - 16
+      d: 8
+      k: 4
+      steps: 8
+      n_param_shards: 2
+    usable: true
+    differs: true
+    kind: loss_curve
+    max_abs_err: 0.10516636073589325
+    max_rel_err: 5.837502894963704
+    tolerance: 4.862803948967728e-06
+    detail: 'output ''grad_norms'': 8/8 elements outside the budget (max_abs=0.105166, max_rel=0.356377, rtol=4.86e-06); output ''losses'': 7/8 elements outside the budget (max_abs=0.0212566, max_rel=0.0164579, rtol=4.86e-06); output ''w'': 32/32 elements outside the budget (max_abs=0.0306008, max_rel=5.8375, rtol=4.86e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.0847
+  - shape: dp3_uneven
+    kwargs:
+      shard_sizes:
+      - 21
+      - 7
+      - 4
+      d: 8
+      k: 4
+      steps: 8
+      n_param_shards: 2
+    usable: true
+    differs: true
+    kind: loss_curve
+    max_abs_err: 0.10516639053821564
+    max_rel_err: 5.837505234054446
+    tolerance: 5.135693366178993e-06
+    detail: 'output ''grad_norms'': 8/8 elements outside the budget (max_abs=0.105166, max_rel=0.356377, rtol=5.14e-06); output ''losses'': 7/8 elements outside the budget (max_abs=0.0212566, max_rel=0.0164579, rtol=5.14e-06); output ''w'': 32/32 elements outside the budget (max_abs=0.0306008, max_rel=5.83751, rtol=5.14e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.0069
+  tolerance:
+    rel: 2.800784140699084e-06
+    abs: 2.800784140699084e-06
+    dtype: fp32
+    accum_depth: 138
+    mode: stochastic
+    formula: 'fp32 eps=5.96e-08, K=138, stochastic growth sqrt(K)=11.75, safety=4 -> rel=2.80e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.80e-06'
+    source: crucible.oracles.tolerance.derive

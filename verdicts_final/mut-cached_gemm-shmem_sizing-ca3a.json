@@ -1,0 +1,2476 @@
+{
+  "task_id": "mut-cached_gemm-shmem_sizing-ca3a",
+  "verdict": "FAIL",
+  "executed": true,
+  "oracle_results": [
+    {
+      "oracle": "O1",
+      "verdict": "FAIL",
+      "reason": "11/11 shape(s) failed; first break at shape 'kclass_change_64': shape 'kclass_change_64' exceeded its derived tolerance [fp64 eps=1.11e-16, K=256, stochastic growth sqrt(K)=16.00, safety=4 -> rel=7.11e-15; scale=8.312e+03 (caller-supplied scale) -> abs=5.91e-11]: max_abs_err=3.000e+00, max_rel_err=2.999e-13, 1 bad element(s) in cache_misses (cache_misses: non-floating dtype int64/int64: compared exactly, no tolerance applies)",
+      "evidence": {
+        "device": "cuda",
+        "rng_seed": 1234,
+        "tolerance_mode": "stochastic",
+        "tolerance_safety": 4.0,
+        "candidate_execution": "subprocess sandbox (crucible.runner.sandbox.call_entry); candidate code is never executed in the grading interpreter",
+        "reference_execution": "in-process (seed.reference is first-party seed-bank code, not candidate input)",
+        "seed_id": "autotune.cached_gemm",
+        "entry": "autotuned_gemm",
+        "per_shape": [
+          {
+            "name": "kclass_change_64",
+            "shape_key": "9deb37454e92d867",
+            "kwargs": {
+              "shapes": [
+                [
+                  64,
+                  64,
+                  32
+                ],
+                [
+                  64,
+                  64,
+                  32
+                ],
+                [
+                  64,
+                  64,
+                  256
+                ],
+                [
+                  64,
+                  64,
+                  256
+                ]
+              ]
+            },
+            "status": "fail",
+            "reason": "shape 'kclass_change_64' exceeded its derived tolerance [fp64 eps=1.11e-16, K=256, stochastic growth sqrt(K)=16.00, safety=4 -> rel=7.11e-15; scale=8.312e+03 (caller-supplied scale) -> abs=5.91e-11]: max_abs_err=3.000e+00, max_rel_err=2.999e-13, 1 bad element(s) in cache_misses (cache_misses: non-floating dtype int64/int64: compared exactly, no tolerance applies)",
+            "device": "cuda",
+            "rng_seed": 501955608,
+            "reference_outputs": [
+              {
+                "name": "cache_misses",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "configs_used",
+                "dtype": "int64",
+                "shape": [
+                  4,
+                  3
+                ]
+              },
+              {
+                "name": "cost_ns",
+                "dtype": "float64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "total_cost_ns",
+                "dtype": "float64",
+                "shape": []
+              },
+              {
+                "name": "y",
+                "dtype": "float64",
+                "shape": [
+                  16384
+                ]
+              }
+            ],
+            "dtype": "fp64",
+            "accum_depth": 256,
+            "tolerance": {
+              "rel": 7.105427357601002e-15,
+              "abs": 5.906031219637953e-11,
+              "dtype": "fp64",
+              "accum_depth": 256,
+              "mode": "stochastic",
+              "formula": "fp64 eps=1.11e-16, K=256, stochastic growth sqrt(K)=16.00, safety=4 -> rel=7.11e-15; scale=8.312e+03 (caller-supplied scale) -> abs=5.91e-11",
+              "safety": 4.0,
+              "eps": 1.1102230246251565e-16,
+              "growth": 16.0,
+              "scale": 8312.0,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp64 eps=1.11e-16, K=256, stochastic growth sqrt(K)=16.00, safety=4 -> rel=7.11e-15; scale=8.312e+03 (caller-supplied scale) -> abs=5.91e-11",
+            "sandbox_duration_s": 1.79524050001055,
+            "checksums": {
+              "cache_misses": "d7e86e458414fd2e0e677a562e84c8f12689c93bb77b48c826691342672958fe",
+              "configs_used": "30257dc83cedfa4e627dbb5982b77c6e6a475af6dad34cee0a4bb225b85ab9ab",
+              "cost_ns": "bb6363bdc1242c8772914102aa471102ae89804d8583a7e5c73bc0388e9b5390",
+              "total_cost_ns": "33f9dcaa4741a5ad5b1504d4c0e064a81acb552554be653719498c77eac6919f",
+              "y": "0171e28709711aaede40414af8231b00a45bcaedf87aba39236a30b6797c4993"
+            },
+            "per_output": [
+              {
+                "passed": false,
+                "max_abs_err": 3.0,
+                "max_rel_err": 0.0,
+                "n_bad": 1,
+                "first_bad_index": [],
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "cache_misses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 12,
+                "n_comparable": 12,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "configs_used"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 4,
+                "n_comparable": 4,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "total_cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 2.1316282072803006e-14,
+                "max_rel_err": 2.9987128126246455e-13,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 16384,
+                "n_comparable": 16384,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "y"
+              }
+            ],
+            "max_abs_err": 3.0,
+            "max_rel_err": 2.9987128126246455e-13,
+            "n_bad": 1,
+            "first_bad_index": [],
+            "comparable": true,
+            "duration_s": 1.9061133000068367
+          },
+          {
+            "name": "kclass_interleaved_128",
+            "shape_key": "92f8b1910a2ff1ff",
+            "kwargs": {
+              "shapes": [
+                [
+                  128,
+                  128,
+                  32
+                ],
+                [
+                  128,
+                  128,
+                  256
+                ],
+                [
+                  128,
+                  128,
+                  32
+                ],
+                [
+                  128,
+                  128,
+                  256
+                ]
+              ]
+            },
+            "status": "fail",
+            "reason": "shape 'kclass_interleaved_128' exceeded its derived tolerance [fp64 eps=1.11e-16, K=256, stochastic growth sqrt(K)=16.00, safety=4 -> rel=7.11e-15; scale=2.944e+04 (caller-supplied scale) -> abs=2.09e-10]: max_abs_err=3.000e+00, max_rel_err=3.016e-12, 1 bad element(s) in cache_misses (cache_misses: non-floating dtype int64/int64: compared exactly, no tolerance applies)",
+            "device": "cuda",
+            "rng_seed": 318289508,
+            "reference_outputs": [
+              {
+                "name": "cache_misses",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "configs_used",
+                "dtype": "int64",
+                "shape": [
+                  4,
+                  3
+                ]
+              },
+              {
+                "name": "cost_ns",
+                "dtype": "float64",
+                "shape": [
+                  4
+                ]
+              },
+              {
+                "name": "total_cost_ns",
+                "dtype": "float64",
+                "shape": []
+              },
+              {
+                "name": "y",
+                "dtype": "float64",
+                "shape": [
+                  65536
+                ]
+              }
+            ],
+            "dtype": "fp64",
+            "accum_depth": 256,
+            "tolerance": {
+              "rel": 7.105427357601002e-15,
+              "abs": 2.091837814077735e-10,
+              "dtype": "fp64",
+              "accum_depth": 256,
+              "mode": "stochastic",
+              "formula": "fp64 eps=1.11e-16, K=256, stochastic growth sqrt(K)=16.00, safety=4 -> rel=7.11e-15; scale=2.944e+04 (caller-supplied scale) -> abs=2.09e-10",
+              "safety": 4.0,
+              "eps": 1.1102230246251565e-16,
+              "growth": 16.0,
+              "scale": 29440.0,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp64 eps=1.11e-16, K=256, stochastic growth sqrt(K)=16.00, safety=4 -> rel=7.11e-15; scale=2.944e+04 (caller-supplied scale) -> abs=2.09e-10",
+            "sandbox_duration_s": 1.7859137000050396,
+            "checksums": {
+              "cache_misses": "d7e86e458414fd2e0e677a562e84c8f12689c93bb77b48c826691342672958fe",
+              "configs_used": "8e425630f9577020aab073820b45bb1cbfe2c2380259b70809f02d27995e7747",
+              "cost_ns": "c8d3a277400b14ab4781d293bd3c9bf8f69ca64a431cc4247388167caabf6b4a",
+              "total_cost_ns": "480cdc64989d4e746162081ac725d0849e54def1ca9517fef7f2b70e10bbeab2",
+              "y": "4e07e47c1f9820e3518978a9ce213c9f4bba227f584324010a9efbd0da603676"
+            },
+            "per_output": [
+              {
+                "passed": false,
+                "max_abs_err": 3.0,
+                "max_rel_err": 0.0,
+                "n_bad": 1,
+                "first_bad_index": [],
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "cache_misses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 12,
+                "n_comparable": 12,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "configs_used"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 4,
+                "n_comparable": 4,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "total_cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 2.842170943040401e-14,
+                "max_rel_err": 3.0155104572935053e-12,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 65536,
+                "n_comparable": 65536,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "y"
+              }
+            ],
+            "max_abs_err": 3.0,
+            "max_rel_err": 3.0155104572935053e-12,
+            "n_bad": 1,
+            "first_bad_index": [],
+            "comparable": true,
+            "duration_s": 1.8207275997847319
+          },
+          {
+            "name": "mclass_change",
+            "shape_key": "49decb02f540fcbb",
+            "kwargs": {
+              "shapes": [
+                [
+                  64,
+                  64,
+                  64
+                ],
+                [
+                  64,
+                  64,
+                  64
+                ],
+                [
+                  128,
+                  64,
+                  64
+                ]
+              ]
+            },
+            "status": "fail",
+            "reason": "shape 'mclass_change' exceeded its derived tolerance [fp64 eps=1.11e-16, K=64, stochastic growth sqrt(K)=8.00, safety=4 -> rel=3.55e-15; scale=3.724e+03 (caller-supplied scale) -> abs=1.32e-11]: max_abs_err=3.000e+00, max_rel_err=0.000e+00, 1 bad element(s) in cache_misses (cache_misses: non-floating dtype int64/int64: compared exactly, no tolerance applies)",
+            "device": "cuda",
+            "rng_seed": 1239338964,
+            "reference_outputs": [
+              {
+                "name": "cache_misses",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "configs_used",
+                "dtype": "int64",
+                "shape": [
+                  3,
+                  3
+                ]
+              },
+              {
+                "name": "cost_ns",
+                "dtype": "float64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "total_cost_ns",
+                "dtype": "float64",
+                "shape": []
+              },
+              {
+                "name": "y",
+                "dtype": "float64",
+                "shape": [
+                  16384
+                ]
+              }
+            ],
+            "dtype": "fp64",
+            "accum_depth": 64,
+            "tolerance": {
+              "rel": 3.552713678800501e-15,
+              "abs": 1.3230305739853065e-11,
+              "dtype": "fp64",
+              "accum_depth": 64,
+              "mode": "stochastic",
+              "formula": "fp64 eps=1.11e-16, K=64, stochastic growth sqrt(K)=8.00, safety=4 -> rel=3.55e-15; scale=3.724e+03 (caller-supplied scale) -> abs=1.32e-11",
+              "safety": 4.0,
+              "eps": 1.1102230246251565e-16,
+              "growth": 8.0,
+              "scale": 3724.0,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp64 eps=1.11e-16, K=64, stochastic growth sqrt(K)=8.00, safety=4 -> rel=3.55e-15; scale=3.724e+03 (caller-supplied scale) -> abs=1.32e-11",
+            "sandbox_duration_s": 1.8014538998249918,
+            "checksums": {
+              "cache_misses": "d7e86e458414fd2e0e677a562e84c8f12689c93bb77b48c826691342672958fe",
+              "configs_used": "2f04beb00b8a515efa8fe5403dc0668936330b9028c73218f6951f8a9edd441c",
+              "cost_ns": "70b6011083c71de76018bea9e19ed7bd091f2e88d749a3c0e0ec598c3b31ac41",
+              "total_cost_ns": "96ea7159afe93d152729b54049afaefea48135c22c0fd386917c77b5b2e1c492",
+              "y": "1fa846e8a55b153feacc4cee94f3909cc5406b2f7c480b97675c1d71383c23fd"
+            },
+            "per_output": [
+              {
+                "passed": false,
+                "max_abs_err": 3.0,
+                "max_rel_err": 0.0,
+                "n_bad": 1,
+                "first_bad_index": [],
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "cache_misses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 9,
+                "n_comparable": 9,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "configs_used"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 3,
+                "n_comparable": 3,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "total_cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 16384,
+                "n_comparable": 16384,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "y"
+              }
+            ],
+            "max_abs_err": 3.0,
+            "max_rel_err": 0.0,
+            "n_bad": 1,
+            "first_bad_index": [],
+            "comparable": true,
+            "duration_s": 1.8269984000362456
+          },
+          {
+            "name": "ragged_dims",
+            "shape_key": "c3e06498a541cdca",
+            "kwargs": {
+              "shapes": [
+                [
+                  33,
+                  33,
+                  33
+                ],
+                [
+                  17,
+                  129,
+                  5
+                ],
+                [
+                  100,
+                  96,
+                  48
+                ]
+              ]
+            },
+            "status": "fail",
+            "reason": "shape 'ragged_dims' exceeded its derived tolerance [fp64 eps=1.11e-16, K=48, stochastic growth sqrt(K)=6.93, safety=4 -> rel=3.08e-15; scale=5.816e+03 (caller-supplied scale) -> abs=1.79e-11]: max_abs_err=4.000e+00, max_rel_err=0.000e+00, 1 bad element(s) in cache_misses (cache_misses: non-floating dtype int64/int64: compared exactly, no tolerance applies)",
+            "device": "cuda",
+            "rng_seed": 1138780523,
+            "reference_outputs": [
+              {
+                "name": "cache_misses",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "configs_used",
+                "dtype": "int64",
+                "shape": [
+                  3,
+                  3
+                ]
+              },
+              {
+                "name": "cost_ns",
+                "dtype": "float64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "total_cost_ns",
+                "dtype": "float64",
+                "shape": []
+              },
+              {
+                "name": "y",
+                "dtype": "float64",
+                "shape": [
+                  12882
+                ]
+              }
+            ],
+            "dtype": "fp64",
+            "accum_depth": 48,
+            "tolerance": {
+              "rel": 3.076740298213702e-15,
+              "abs": 1.7894321574410892e-11,
+              "dtype": "fp64",
+              "accum_depth": 48,
+              "mode": "stochastic",
+              "formula": "fp64 eps=1.11e-16, K=48, stochastic growth sqrt(K)=6.93, safety=4 -> rel=3.08e-15; scale=5.816e+03 (caller-supplied scale) -> abs=1.79e-11",
+              "safety": 4.0,
+              "eps": 1.1102230246251565e-16,
+              "growth": 6.928203230275509,
+              "scale": 5816.0,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp64 eps=1.11e-16, K=48, stochastic growth sqrt(K)=6.93, safety=4 -> rel=3.08e-15; scale=5.816e+03 (caller-supplied scale) -> abs=1.79e-11",
+            "sandbox_duration_s": 1.8590538001153618,
+            "checksums": {
+              "cache_misses": "d09817789bd0a06bec82c52e42b0073208682f810bbb60e825f64b18ecda5c51",
+              "configs_used": "4aaf88fb93e7bf2a22006cf7b11cd9e997ca740b1911c62280dc019315ae8312",
+              "cost_ns": "b0071a3d2d0084ce6e7eed83bdae9bd14bc8d4c73008e3900c7d88c231f8dc53",
+              "total_cost_ns": "ae693db337324eb52a959566c3a1a368f1f9f2e8f798fc08d49f17ad13646851",
+              "y": "2fc87e031df78312dce95b02c7dc5a9e4249e255ad5a105142711468b744b3ff"
+            },
+            "per_output": [
+              {
+                "passed": false,
+                "max_abs_err": 4.0,
+                "max_rel_err": 0.0,
+                "n_bad": 1,
+                "first_bad_index": [],
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "cache_misses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 9,
+                "n_comparable": 9,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "configs_used"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 3,
+                "n_comparable": 3,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "total_cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 12882,
+                "n_comparable": 12882,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "y"
+              }
+            ],
+            "max_abs_err": 4.0,
+            "max_rel_err": 0.0,
+            "n_bad": 1,
+            "first_bad_index": [],
+            "comparable": true,
+            "duration_s": 1.8838698999024928
+          },
+          {
+            "name": "class_repr_vs_concrete",
+            "shape_key": "8596956b93352ad1",
+            "kwargs": {
+              "shapes": [
+                [
+                  65,
+                  65,
+                  65
+                ],
+                [
+                  128,
+                  128,
+                  128
+                ]
+              ]
+            },
+            "status": "fail",
+            "reason": "shape 'class_repr_vs_concrete' exceeded its derived tolerance [fp64 eps=1.11e-16, K=128, stochastic growth sqrt(K)=11.31, safety=4 -> rel=5.02e-15; scale=1.254e+04 (caller-supplied scale) -> abs=6.30e-11]: max_abs_err=2.000e+00, max_rel_err=1.677e-14, 1 bad element(s) in cache_misses (cache_misses: non-floating dtype int64/int64: compared exactly, no tolerance applies)",
+            "device": "cuda",
+            "rng_seed": 93755966,
+            "reference_outputs": [
+              {
+                "name": "cache_misses",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "configs_used",
+                "dtype": "int64",
+                "shape": [
+                  2,
+                  3
+                ]
+              },
+              {
+                "name": "cost_ns",
+                "dtype": "float64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "total_cost_ns",
+                "dtype": "float64",
+                "shape": []
+              },
+              {
+                "name": "y",
+                "dtype": "float64",
+                "shape": [
+                  20609
+                ]
+              }
+            ],
+            "dtype": "fp64",
+            "accum_depth": 128,
+            "tolerance": {
+              "rel": 5.0242958677880805e-15,
+              "abs": 6.302476736553368e-11,
+              "dtype": "fp64",
+              "accum_depth": 128,
+              "mode": "stochastic",
+              "formula": "fp64 eps=1.11e-16, K=128, stochastic growth sqrt(K)=11.31, safety=4 -> rel=5.02e-15; scale=1.254e+04 (caller-supplied scale) -> abs=6.30e-11",
+              "safety": 4.0,
+              "eps": 1.1102230246251565e-16,
+              "growth": 11.313708498984761,
+              "scale": 12544.0,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp64 eps=1.11e-16, K=128, stochastic growth sqrt(K)=11.31, safety=4 -> rel=5.02e-15; scale=1.254e+04 (caller-supplied scale) -> abs=6.30e-11",
+            "sandbox_duration_s": 1.9216627001296729,
+            "checksums": {
+              "cache_misses": "96d4915936ea48bac483e8cbceb480ec84f1636040a6a801fd03664ff2f1b4c2",
+              "configs_used": "27b2535d0b12724558a0554bd5b4b83e5568050e9024580eaa4b62736eb84f67",
+              "cost_ns": "42ba69eead7cdb0018aa7a73ba03af4b96ddbca78c67c731d70062dff98f0523",
+              "total_cost_ns": "102c7d1f64dcad088a64defb73794f06a0ea2cf9572b47635339c8899e8404f8",
+              "y": "6d607c67b1fc5314bf4cf130a333b1502b8694c73095ca1ad79c02a8e8adb9d7"
+            },
+            "per_output": [
+              {
+                "passed": false,
+                "max_abs_err": 2.0,
+                "max_rel_err": 0.0,
+                "n_bad": 1,
+                "first_bad_index": [],
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "cache_misses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 6,
+                "n_comparable": 6,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "configs_used"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 2,
+                "n_comparable": 2,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "total_cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 3.9968028886505635e-15,
+                "max_rel_err": 1.6765967763025052e-14,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 20609,
+                "n_comparable": 20609,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "y"
+              }
+            ],
+            "max_abs_err": 2.0,
+            "max_rel_err": 1.6765967763025052e-14,
+            "n_bad": 1,
+            "first_bad_index": [],
+            "comparable": true,
+            "duration_s": 1.9461667998693883
+          },
+          {
+            "name": "single_problem",
+            "shape_key": "89f14a14be23f897",
+            "kwargs": {
+              "shapes": [
+                [
+                  64,
+                  64,
+                  64
+                ]
+              ]
+            },
+            "status": "fail",
+            "reason": "shape 'single_problem' exceeded its derived tolerance [fp64 eps=1.11e-16, K=64, stochastic growth sqrt(K)=8.00, safety=4 -> rel=3.55e-15; scale=1.028e+03 (caller-supplied scale) -> abs=3.65e-12]: max_abs_err=2.000e+00, max_rel_err=0.000e+00, 1 bad element(s) in cache_misses (cache_misses: non-floating dtype int64/int64: compared exactly, no tolerance applies)",
+            "device": "cuda",
+            "rng_seed": 166809319,
+            "reference_outputs": [
+              {
+                "name": "cache_misses",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "configs_used",
+                "dtype": "int64",
+                "shape": [
+                  1,
+                  3
+                ]
+              },
+              {
+                "name": "cost_ns",
+                "dtype": "float64",
+                "shape": [
+                  1
+                ]
+              },
+              {
+                "name": "total_cost_ns",
+                "dtype": "float64",
+                "shape": []
+              },
+              {
+                "name": "y",
+                "dtype": "float64",
+                "shape": [
+                  4096
+                ]
+              }
+            ],
+            "dtype": "fp64",
+            "accum_depth": 64,
+            "tolerance": {
+              "rel": 3.552713678800501e-15,
+              "abs": 3.652189661806915e-12,
+              "dtype": "fp64",
+              "accum_depth": 64,
+              "mode": "stochastic",
+              "formula": "fp64 eps=1.11e-16, K=64, stochastic growth sqrt(K)=8.00, safety=4 -> rel=3.55e-15; scale=1.028e+03 (caller-supplied scale) -> abs=3.65e-12",
+              "safety": 4.0,
+              "eps": 1.1102230246251565e-16,
+              "growth": 8.0,
+              "scale": 1028.0,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp64 eps=1.11e-16, K=64, stochastic growth sqrt(K)=8.00, safety=4 -> rel=3.55e-15; scale=1.028e+03 (caller-supplied scale) -> abs=3.65e-12",
+            "sandbox_duration_s": 1.8028481998480856,
+            "checksums": {
+              "cache_misses": "96d4915936ea48bac483e8cbceb480ec84f1636040a6a801fd03664ff2f1b4c2",
+              "configs_used": "273d40782c89cb319a7d59f8002bc37a0f347efd0c193e97ecbc7c91b833ba93",
+              "cost_ns": "dad8aeb16aedd753ac4d9975564e43ee94c380b0d552505ec3c192e6a4e93302",
+              "total_cost_ns": "dad8aeb16aedd753ac4d9975564e43ee94c380b0d552505ec3c192e6a4e93302",
+              "y": "585439a969995e698400a9e4194f64ce0007a8540b6853d5133ae3dcc8b8b082"
+            },
+            "per_output": [
+              {
+                "passed": false,
+                "max_abs_err": 2.0,
+                "max_rel_err": 0.0,
+                "n_bad": 1,
+                "first_bad_index": [],
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "cache_misses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 3,
+                "n_comparable": 3,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "configs_used"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "total_cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 4096,
+                "n_comparable": 4096,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "y"
+              }
+            ],
+            "max_abs_err": 2.0,
+            "max_rel_err": 0.0,
+            "n_bad": 1,
+            "first_bad_index": [],
+            "comparable": true,
+            "duration_s": 1.8269682000391185
+          },
+          {
+            "name": "one_class_decoy",
+            "shape_key": "c24da818ef5f5e6d",
+            "kwargs": {
+              "shapes": [
+                [
+                  64,
+                  64,
+                  32
+                ],
+                [
+                  64,
+                  64,
+                  32
+                ],
+                [
+                  60,
+                  61,
+                  30
+                ]
+              ]
+            },
+            "status": "fail",
+            "reason": "shape 'one_class_decoy' exceeded its derived tolerance [fp64 eps=1.11e-16, K=32, stochastic growth sqrt(K)=5.66, safety=4 -> rel=2.51e-15; scale=1.932e+03 (caller-supplied scale) -> abs=4.85e-12]: max_abs_err=2.000e+00, max_rel_err=0.000e+00, 1 bad element(s) in cache_misses (cache_misses: non-floating dtype int64/int64: compared exactly, no tolerance applies)",
+            "device": "cuda",
+            "rng_seed": 1112386795,
+            "reference_outputs": [
+              {
+                "name": "cache_misses",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "configs_used",
+                "dtype": "int64",
+                "shape": [
+                  3,
+                  3
+                ]
+              },
+              {
+                "name": "cost_ns",
+                "dtype": "float64",
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "name": "total_cost_ns",
+                "dtype": "float64",
+                "shape": []
+              },
+              {
+                "name": "y",
+                "dtype": "float64",
+                "shape": [
+                  11852
+                ]
+              }
+            ],
+            "dtype": "fp64",
+            "accum_depth": 32,
+            "tolerance": {
+              "rel": 2.5121479338940403e-15,
+              "abs": 4.853469808283286e-12,
+              "dtype": "fp64",
+              "accum_depth": 32,
+              "mode": "stochastic",
+              "formula": "fp64 eps=1.11e-16, K=32, stochastic growth sqrt(K)=5.66, safety=4 -> rel=2.51e-15; scale=1.932e+03 (caller-supplied scale) -> abs=4.85e-12",
+              "safety": 4.0,
+              "eps": 1.1102230246251565e-16,
+              "growth": 5.656854249492381,
+              "scale": 1932.0,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp64 eps=1.11e-16, K=32, stochastic growth sqrt(K)=5.66, safety=4 -> rel=2.51e-15; scale=1.932e+03 (caller-supplied scale) -> abs=4.85e-12",
+            "sandbox_duration_s": 1.786040100036189,
+            "checksums": {
+              "cache_misses": "96d4915936ea48bac483e8cbceb480ec84f1636040a6a801fd03664ff2f1b4c2",
+              "configs_used": "0b1ed0d61a16072597307c269e4e6c4df2bb4e2bd2fbfccd4c4de27fe706c07c",
+              "cost_ns": "3252a38613ab67c6f94c5358fc414ff3f1ff395c90d3ceae0c9c14f8368de14e",
+              "total_cost_ns": "c8124bb37ebe1fcfbe1f6b336b7c6a4867e133c75deadcccf80068a9fcdf0b77",
+              "y": "b40de25dcc647ff1df8e72cc17dc0d482f231ff15767cd51d13d2ac630b5ed78"
+            },
+            "per_output": [
+              {
+                "passed": false,
+                "max_abs_err": 2.0,
+                "max_rel_err": 0.0,
+                "n_bad": 1,
+                "first_bad_index": [],
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "cache_misses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 9,
+                "n_comparable": 9,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "configs_used"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 3,
+                "n_comparable": 3,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "total_cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 11852,
+                "n_comparable": 11852,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "y"
+              }
+            ],
+            "max_abs_err": 2.0,
+            "max_rel_err": 0.0,
+            "n_bad": 1,
+            "first_bad_index": [],
+            "comparable": true,
+            "duration_s": 1.8135888001415879
+          },
+          {
+            "name": "zero_k",
+            "shape_key": "1f9a66f3b058551c",
+            "kwargs": {
+              "shapes": [
+                [
+                  16,
+                  16,
+                  0
+                ],
+                [
+                  16,
+                  16,
+                  16
+                ]
+              ]
+            },
+            "status": "fail",
+            "reason": "shape 'zero_k' exceeded its derived tolerance [fp64 eps=1.11e-16, K=16, stochastic growth sqrt(K)=4.00, safety=4 -> rel=1.78e-15; scale=4.840e+02 (caller-supplied scale) -> abs=8.60e-13]: max_abs_err=3.000e+00, max_rel_err=0.000e+00, 1 bad element(s) in cache_misses (cache_misses: non-floating dtype int64/int64: compared exactly, no tolerance applies)",
+            "device": "cuda",
+            "rng_seed": 530213829,
+            "reference_outputs": [
+              {
+                "name": "cache_misses",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "configs_used",
+                "dtype": "int64",
+                "shape": [
+                  2,
+                  3
+                ]
+              },
+              {
+                "name": "cost_ns",
+                "dtype": "float64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "total_cost_ns",
+                "dtype": "float64",
+                "shape": []
+              },
+              {
+                "name": "y",
+                "dtype": "float64",
+                "shape": [
+                  512
+                ]
+              }
+            ],
+            "dtype": "fp64",
+            "accum_depth": 16,
+            "tolerance": {
+              "rel": 1.7763568394002505e-15,
+              "abs": 8.597567102697212e-13,
+              "dtype": "fp64",
+              "accum_depth": 16,
+              "mode": "stochastic",
+              "formula": "fp64 eps=1.11e-16, K=16, stochastic growth sqrt(K)=4.00, safety=4 -> rel=1.78e-15; scale=4.840e+02 (caller-supplied scale) -> abs=8.60e-13",
+              "safety": 4.0,
+              "eps": 1.1102230246251565e-16,
+              "growth": 4.0,
+              "scale": 484.0,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp64 eps=1.11e-16, K=16, stochastic growth sqrt(K)=4.00, safety=4 -> rel=1.78e-15; scale=4.840e+02 (caller-supplied scale) -> abs=8.60e-13",
+            "sandbox_duration_s": 1.8507596999406815,
+            "checksums": {
+              "cache_misses": "d7e86e458414fd2e0e677a562e84c8f12689c93bb77b48c826691342672958fe",
+              "configs_used": "74381c933caf7268702c12af6e27dfc476761a2b8cd5677e0130eca7b9102e0a",
+              "cost_ns": "6eb403901c1455639b67ce641fde28f009b73f7cc47ed0873f51790f9aaf404c",
+              "total_cost_ns": "f090249efa3fecb1c9b977ab7d741a371f1aa517a13687c2adb7d3f4c3dfc1b1",
+              "y": "17e14b7e1537615f4340efc154c1585585975872dc0fe7eaabf9f5ffe73ab5a3"
+            },
+            "per_output": [
+              {
+                "passed": false,
+                "max_abs_err": 3.0,
+                "max_rel_err": 0.0,
+                "n_bad": 1,
+                "first_bad_index": [],
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "cache_misses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 6,
+                "n_comparable": 6,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "configs_used"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 2,
+                "n_comparable": 2,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "total_cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 512,
+                "n_comparable": 512,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 256,
+                "kind": "numeric",
+                "detail": "256 reference entries are exactly zero (absolute budget only)",
+                "name": "y"
+              }
+            ],
+            "max_abs_err": 3.0,
+            "max_rel_err": 0.0,
+            "n_bad": 1,
+            "first_bad_index": [],
+            "comparable": true,
+            "duration_s": 1.8712023999541998
+          },
+          {
+            "name": "zero_m",
+            "shape_key": "e3522f90420d4b75",
+            "kwargs": {
+              "shapes": [
+                [
+                  0,
+                  16,
+                  16
+                ],
+                [
+                  16,
+                  16,
+                  16
+                ]
+              ]
+            },
+            "status": "fail",
+            "reason": "shape 'zero_m' exceeded its derived tolerance [fp64 eps=1.11e-16, K=16, stochastic growth sqrt(K)=4.00, safety=4 -> rel=1.78e-15; scale=2.840e+02 (caller-supplied scale) -> abs=5.04e-13]: max_abs_err=3.000e+00, max_rel_err=0.000e+00, 1 bad element(s) in cache_misses (cache_misses: non-floating dtype int64/int64: compared exactly, no tolerance applies)",
+            "device": "cuda",
+            "rng_seed": 1666331747,
+            "reference_outputs": [
+              {
+                "name": "cache_misses",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "configs_used",
+                "dtype": "int64",
+                "shape": [
+                  2,
+                  3
+                ]
+              },
+              {
+                "name": "cost_ns",
+                "dtype": "float64",
+                "shape": [
+                  2
+                ]
+              },
+              {
+                "name": "total_cost_ns",
+                "dtype": "float64",
+                "shape": []
+              },
+              {
+                "name": "y",
+                "dtype": "float64",
+                "shape": [
+                  256
+                ]
+              }
+            ],
+            "dtype": "fp64",
+            "accum_depth": 16,
+            "tolerance": {
+              "rel": 1.7763568394002505e-15,
+              "abs": 5.044853423896711e-13,
+              "dtype": "fp64",
+              "accum_depth": 16,
+              "mode": "stochastic",
+              "formula": "fp64 eps=1.11e-16, K=16, stochastic growth sqrt(K)=4.00, safety=4 -> rel=1.78e-15; scale=2.840e+02 (caller-supplied scale) -> abs=5.04e-13",
+              "safety": 4.0,
+              "eps": 1.1102230246251565e-16,
+              "growth": 4.0,
+              "scale": 284.0,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp64 eps=1.11e-16, K=16, stochastic growth sqrt(K)=4.00, safety=4 -> rel=1.78e-15; scale=2.840e+02 (caller-supplied scale) -> abs=5.04e-13",
+            "sandbox_duration_s": 1.8797673999797553,
+            "checksums": {
+              "cache_misses": "d7e86e458414fd2e0e677a562e84c8f12689c93bb77b48c826691342672958fe",
+              "configs_used": "74381c933caf7268702c12af6e27dfc476761a2b8cd5677e0130eca7b9102e0a",
+              "cost_ns": "f055808b98ebc43feb3557a05f07622a6bc91c048b99a7412f957305ea8cf072",
+              "total_cost_ns": "e86fb8dbe821eba7c7b6f0fad48eee957f765ec1ecc2bf3a7f07d9b9016416d1",
+              "y": "6dbfcca1aa8075351978e2e96927960ee8ba46734b06e3f17900dad412559d9a"
+            },
+            "per_output": [
+              {
+                "passed": false,
+                "max_abs_err": 3.0,
+                "max_rel_err": 0.0,
+                "n_bad": 1,
+                "first_bad_index": [],
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "cache_misses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 6,
+                "n_comparable": 6,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "configs_used"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 2,
+                "n_comparable": 2,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 1,
+                "kind": "numeric",
+                "detail": "1 reference entries are exactly zero (absolute budget only)",
+                "name": "cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "total_cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 256,
+                "n_comparable": 256,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "y"
+              }
+            ],
+            "max_abs_err": 3.0,
+            "max_rel_err": 0.0,
+            "n_bad": 1,
+            "first_bad_index": [],
+            "comparable": true,
+            "duration_s": 1.9012007999699563
+          },
+          {
+            "name": "empty_sequence",
+            "shape_key": "7bac9c9365584aa5",
+            "kwargs": {
+              "shapes": []
+            },
+            "status": "fail",
+            "reason": "shape 'empty_sequence' exceeded its derived tolerance [fp64 eps=1.11e-16, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=4.44e-16; scale=1.000e+00 (caller-supplied scale) -> abs=4.44e-16]: max_abs_err=1.000e+00, max_rel_err=0.000e+00, 1 bad element(s) in cache_misses (cache_misses: non-floating dtype int64/int64: compared exactly, no tolerance applies)",
+            "device": "cuda",
+            "rng_seed": 2074911077,
+            "reference_outputs": [
+              {
+                "name": "cache_misses",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "configs_used",
+                "dtype": "int64",
+                "shape": [
+                  0,
+                  3
+                ]
+              },
+              {
+                "name": "cost_ns",
+                "dtype": "float64",
+                "shape": [
+                  0
+                ]
+              },
+              {
+                "name": "total_cost_ns",
+                "dtype": "float64",
+                "shape": []
+              },
+              {
+                "name": "y",
+                "dtype": "float64",
+                "shape": [
+                  0
+                ]
+              }
+            ],
+            "dtype": "fp64",
+            "accum_depth": 1,
+            "tolerance": {
+              "rel": 4.440892098500626e-16,
+              "abs": 4.440892098500626e-16,
+              "dtype": "fp64",
+              "accum_depth": 1,
+              "mode": "stochastic",
+              "formula": "fp64 eps=1.11e-16, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=4.44e-16; scale=1.000e+00 (caller-supplied scale) -> abs=4.44e-16",
+              "safety": 4.0,
+              "eps": 1.1102230246251565e-16,
+              "growth": 1.0,
+              "scale": 1.0,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp64 eps=1.11e-16, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=4.44e-16; scale=1.000e+00 (caller-supplied scale) -> abs=4.44e-16",
+            "sandbox_duration_s": 1.8241321998648345,
+            "checksums": {
+              "cache_misses": "45adabbfed6d5c15e65388c91d304b353a63747b2e17a7860a030a4b2b26246b",
+              "configs_used": "4744650aed8c3e2e6f51c8414e7445be943e5cc7804a0ef29d5d1f91c84c5732",
+              "cost_ns": "38e8cefffb0bde4c12f41699d9f6534d0c3d6dc90e07502a9c803e3e38381af3",
+              "total_cost_ns": "746e75607f7ce3478b54dd31aa809ce25c0435996ce87be6a05d52790547d949",
+              "y": "38e8cefffb0bde4c12f41699d9f6534d0c3d6dc90e07502a9c803e3e38381af3"
+            },
+            "per_output": [
+              {
+                "passed": false,
+                "max_abs_err": 1.0,
+                "max_rel_err": 0.0,
+                "n_bad": 1,
+                "first_bad_index": [],
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "cache_misses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 0,
+                "n_comparable": 0,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "both outputs are empty; nothing to compare",
+                "name": "configs_used"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 0,
+                "n_comparable": 0,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "both outputs are empty; nothing to compare",
+                "name": "cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 1,
+                "kind": "numeric",
+                "detail": "1 reference entries are exactly zero (absolute budget only)",
+                "name": "total_cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 0,
+                "n_comparable": 0,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "both outputs are empty; nothing to compare",
+                "name": "y"
+              }
+            ],
+            "max_abs_err": 1.0,
+            "max_rel_err": 0.0,
+            "n_bad": 1,
+            "first_bad_index": [],
+            "comparable": true,
+            "duration_s": 1.8438637999352068
+          },
+          {
+            "name": "bf16_accum_probe",
+            "shape_key": "97f40a0201967cbf",
+            "kwargs": {
+              "shapes": [
+                [
+                  64,
+                  64,
+                  256
+                ]
+              ],
+              "accum_dtype": "float64",
+              "dtype": "float32"
+            },
+            "status": "fail",
+            "reason": "shape 'bf16_accum_probe' exceeded its derived tolerance [fp32 eps=5.96e-08, K=256, stochastic growth sqrt(K)=16.00, safety=4 -> rel=3.81e-06; scale=3.512e+03 (caller-supplied scale) -> abs=1.34e-02]: max_abs_err=2.000e+00, max_rel_err=1.330e-10, 1 bad element(s) in cache_misses (cache_misses: non-floating dtype int64/int64: compared exactly, no tolerance applies)",
+            "device": "cuda",
+            "rng_seed": 401870549,
+            "reference_outputs": [
+              {
+                "name": "cache_misses",
+                "dtype": "int64",
+                "shape": []
+              },
+              {
+                "name": "configs_used",
+                "dtype": "int64",
+                "shape": [
+                  1,
+                  3
+                ]
+              },
+              {
+                "name": "cost_ns",
+                "dtype": "float64",
+                "shape": [
+                  1
+                ]
+              },
+              {
+                "name": "total_cost_ns",
+                "dtype": "float64",
+                "shape": []
+              },
+              {
+                "name": "y",
+                "dtype": "float64",
+                "shape": [
+                  4096
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 256,
+            "tolerance": {
+              "rel": 3.814697265625e-06,
+              "abs": 0.013397216796875,
+              "dtype": "fp32",
+              "accum_depth": 256,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=256, stochastic growth sqrt(K)=16.00, safety=4 -> rel=3.81e-06; scale=3.512e+03 (caller-supplied scale) -> abs=1.34e-02",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 16.0,
+              "scale": 3512.0,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=256, stochastic growth sqrt(K)=16.00, safety=4 -> rel=3.81e-06; scale=3.512e+03 (caller-supplied scale) -> abs=1.34e-02",
+            "sandbox_duration_s": 1.9192196999210864,
+            "checksums": {
+              "cache_misses": "96d4915936ea48bac483e8cbceb480ec84f1636040a6a801fd03664ff2f1b4c2",
+              "configs_used": "273d40782c89cb319a7d59f8002bc37a0f347efd0c193e97ecbc7c91b833ba93",
+              "cost_ns": "121a1aab92a57cd0a20b124048eb0e49983ac046aaf98207d163bc1a3796ff2d",
+              "total_cost_ns": "121a1aab92a57cd0a20b124048eb0e49983ac046aaf98207d163bc1a3796ff2d",
+              "y": "42e3b36f78008e2158aa410e9691c9f0b4f91fcd4070b6edc4f26123889852da"
+            },
+            "per_output": [
+              {
+                "passed": false,
+                "max_abs_err": 2.0,
+                "max_rel_err": 0.0,
+                "n_bad": 1,
+                "first_bad_index": [],
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "cache_misses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 3,
+                "n_comparable": 3,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "exact",
+                "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+                "name": "configs_used"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "total_cost_ns"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 2.1316282072803006e-14,
+                "max_rel_err": 1.329908238144824e-10,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 4096,
+                "n_comparable": 4096,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "y"
+              }
+            ],
+            "max_abs_err": 2.0,
+            "max_rel_err": 1.329908238144824e-10,
+            "n_bad": 1,
+            "first_bad_index": [],
+            "comparable": true,
+            "duration_s": 1.9489819000009447
+          }
+        ],
+        "shapes_evaluated": [
+          "kclass_change_64",
+          "kclass_interleaved_128",
+          "mclass_change",
+          "ragged_dims",
+          "class_repr_vs_concrete",
+          "single_problem",
+          "one_class_decoy",
+          "zero_k",
+          "zero_m",
+          "empty_sequence",
+          "bf16_accum_probe"
+        ],
+        "shapes_not_run": [],
+        "first_break_shape": "kclass_change_64",
+        "first_break": {
+          "name": "kclass_change_64",
+          "shape_key": "9deb37454e92d867",
+          "kwargs": {
+            "shapes": [
+              [
+                64,
+                64,
+                32
+              ],
+              [
+                64,
+                64,
+                32
+              ],
+              [
+                64,
+                64,
+                256
+              ],
+              [
+                64,
+                64,
+                256
+              ]
+            ]
+          },
+          "status": "fail",
+          "reason": "shape 'kclass_change_64' exceeded its derived tolerance [fp64 eps=1.11e-16, K=256, stochastic growth sqrt(K)=16.00, safety=4 -> rel=7.11e-15; scale=8.312e+03 (caller-supplied scale) -> abs=5.91e-11]: max_abs_err=3.000e+00, max_rel_err=2.999e-13, 1 bad element(s) in cache_misses (cache_misses: non-floating dtype int64/int64: compared exactly, no tolerance applies)",
+          "device": "cuda",
+          "rng_seed": 501955608,
+          "reference_outputs": [
+            {
+              "name": "cache_misses",
+              "dtype": "int64",
+              "shape": []
+            },
+            {
+              "name": "configs_used",
+              "dtype": "int64",
+              "shape": [
+                4,
+                3
+              ]
+            },
+            {
+              "name": "cost_ns",
+              "dtype": "float64",
+              "shape": [
+                4
+              ]
+            },
+            {
+              "name": "total_cost_ns",
+              "dtype": "float64",
+              "shape": []
+            },
+            {
+              "name": "y",
+              "dtype": "float64",
+              "shape": [
+                16384
+              ]
+            }
+          ],
+          "dtype": "fp64",
+          "accum_depth": 256,
+          "tolerance": {
+            "rel": 7.105427357601002e-15,
+            "abs": 5.906031219637953e-11,
+            "dtype": "fp64",
+            "accum_depth": 256,
+            "mode": "stochastic",
+            "formula": "fp64 eps=1.11e-16, K=256, stochastic growth sqrt(K)=16.00, safety=4 -> rel=7.11e-15; scale=8.312e+03 (caller-supplied scale) -> abs=5.91e-11",
+            "safety": 4.0,
+            "eps": 1.1102230246251565e-16,
+            "growth": 16.0,
+            "scale": 8312.0,
+            "scale_source": "caller-supplied scale",
+            "derived": true,
+            "note": ""
+          },
+          "tolerance_formula": "fp64 eps=1.11e-16, K=256, stochastic growth sqrt(K)=16.00, safety=4 -> rel=7.11e-15; scale=8.312e+03 (caller-supplied scale) -> abs=5.91e-11",
+          "sandbox_duration_s": 1.79524050001055,
+          "checksums": {
+            "cache_misses": "d7e86e458414fd2e0e677a562e84c8f12689c93bb77b48c826691342672958fe",
+            "configs_used": "30257dc83cedfa4e627dbb5982b77c6e6a475af6dad34cee0a4bb225b85ab9ab",
+            "cost_ns": "bb6363bdc1242c8772914102aa471102ae89804d8583a7e5c73bc0388e9b5390",
+            "total_cost_ns": "33f9dcaa4741a5ad5b1504d4c0e064a81acb552554be653719498c77eac6919f",
+            "y": "0171e28709711aaede40414af8231b00a45bcaedf87aba39236a30b6797c4993"
+          },
+          "per_output": [
+            {
+              "passed": false,
+              "max_abs_err": 3.0,
+              "max_rel_err": 0.0,
+              "n_bad": 1,
+              "first_bad_index": [],
+              "n_total": 1,
+              "n_comparable": 1,
+              "n_nan_mismatch": 0,
+              "n_inf_mismatch": 0,
+              "n_zero_ref": 0,
+              "kind": "exact",
+              "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+              "name": "cache_misses"
+            },
+            {
+              "passed": true,
+              "max_abs_err": 0.0,
+              "max_rel_err": 0.0,
+              "n_bad": 0,
+              "first_bad_index": null,
+              "n_total": 12,
+              "n_comparable": 12,
+              "n_nan_mismatch": 0,
+              "n_inf_mismatch": 0,
+              "n_zero_ref": 0,
+              "kind": "exact",
+              "detail": "non-floating dtype int64/int64: compared exactly, no tolerance applies",
+              "name": "configs_used"
+            },
+            {
+              "passed": true,
+              "max_abs_err": 0.0,
+              "max_rel_err": 0.0,
+              "n_bad": 0,
+              "first_bad_index": null,
+              "n_total": 4,
+              "n_comparable": 4,
+              "n_nan_mismatch": 0,
+              "n_inf_mismatch": 0,
+              "n_zero_ref": 0,
+              "kind": "numeric",
+              "detail": "",
+              "name": "cost_ns"
+            },
+            {
+              "passed": true,
+              "max_abs_err": 0.0,
+              "max_rel_err": 0.0,
+              "n_bad": 0,
+              "first_bad_index": null,
+              "n_total": 1,
+              "n_comparable": 1,
+              "n_nan_mismatch": 0,
+              "n_inf_mismatch": 0,
+              "n_zero_ref": 0,
+              "kind": "numeric",
+              "detail": "",
+              "name": "total_cost_ns"
+            },
+            {
+              "passed": true,
+              "max_abs_err": 2.1316282072803006e-14,
+              "max_rel_err": 2.9987128126246455e-13,
+              "n_bad": 0,
+              "first_bad_index": null,
+              "n_total": 16384,
+              "n_comparable": 16384,
+              "n_nan_mismatch": 0,
+              "n_inf_mismatch": 0,
+              "n_zero_ref": 0,
+              "kind": "numeric",
+              "detail": "",
+              "name": "y"
+            }
+          ],
+          "max_abs_err": 3.0,
+          "max_rel_err": 2.9987128126246455e-13,
+          "n_bad": 1,
+          "first_bad_index": [],
+          "comparable": true,
+          "duration_s": 1.9061133000068367
+        },
+        "summary": {
+          "n_shapes": 11,
+          "n_passed": 0,
+          "n_failed": 11,
+          "n_not_run": 0,
+          "n_compared": 11
+        },
+        "max_abs_err": 4.0,
+        "max_rel_err": 1.329908238144824e-10
+      },
+      "duration_s": 20.59105690009892,
+      "capabilities_used": []
+    },
+    {
+      "oracle": "O3",
+      "verdict": "FAIL",
+      "reason": "anti-cheat check(s) ['static_denylist'] fired -- static_denylist: 1 static finding(s); first: dynamic_attribute 'getattr(torch, <dynamic>)' at line 82 col 10 ('getattr(torch, accum_dtype)')",
+      "evidence": {
+        "checks": {
+          "static_denylist": {
+            "check": "static_denylist",
+            "verdict": "FAIL",
+            "detail": "1 static finding(s); first: dynamic_attribute 'getattr(torch, <dynamic>)' at line 82 col 10 ('getattr(torch, accum_dtype)')",
+            "duration_s": 0.005605,
+            "denylist": [
+              "torch.matmul",
+              "torch.mm",
+              "torch.bmm",
+              "torch.einsum",
+              "torch.addmm",
+              "torch.nn.functional.linear",
+              "functools.lru_cache",
+              "functools.cache",
+              "crucible.seeds.autotune"
+            ],
+            "denylist_empty": false,
+            "aliases": {
+              "torch": "torch"
+            },
+            "hits": [
+              {
+                "kind": "dynamic_attribute",
+                "symbol": "getattr(torch, <dynamic>)",
+                "matched": "",
+                "line": 82,
+                "col": 10,
+                "node": "getattr(torch, accum_dtype)",
+                "detail": "attribute name is not statically knowable; no static policy can bind it"
+              }
+            ],
+            "hit_count": 1,
+            "hits_by_kind": {
+              "dynamic_attribute": 1
+            }
+          },
+          "randomized_inputs": {
+            "check": "randomized_inputs",
+            "verdict": "PASS",
+            "detail": "agrees with the reference on both freshly seeded input sets [127841399, 1996260977]",
+            "duration_s": 3.929641,
+            "shape": "zero_m(e3522f90420d4b75)",
+            "shapes_rejected_as_degenerate": [
+              "empty_sequence"
+            ],
+            "input_seeds": [
+              127841399,
+              1996260977
+            ],
+            "inputs_differed": true,
+            "identical_checksums": false,
+            "runs": [
+              {
+                "ok": true,
+                "checksums": {
+                  "cache_misses": "d7e86e458414fd2e0e677a562e84c8f12689c93bb77b48c826691342672958fe",
+                  "configs_used": "74381c933caf7268702c12af6e27dfc476761a2b8cd5677e0130eca7b9102e0a",
+                  "cost_ns": "f055808b98ebc43feb3557a05f07622a6bc91c048b99a7412f957305ea8cf072",
+                  "total_cost_ns": "e86fb8dbe821eba7c7b6f0fad48eee957f765ec1ecc2bf3a7f07d9b9016416d1",
+                  "y": "7eadffe4fe62b24bc6577f5e17eb6f0634b681e4d8169f5602b85a298092bb14"
+                },
+                "error": "",
+                "duration_s": 1.960727,
+                "input_seed": 127841399,
+                "shape": "zero_m(e3522f90420d4b75)",
+                "agrees_with_reference": true,
+                "max_rel_err": 0.0,
+                "detail": ""
+              },
+              {
+                "ok": true,
+                "checksums": {
+                  "cache_misses": "d7e86e458414fd2e0e677a562e84c8f12689c93bb77b48c826691342672958fe",
+                  "configs_used": "74381c933caf7268702c12af6e27dfc476761a2b8cd5677e0130eca7b9102e0a",
+                  "cost_ns": "f055808b98ebc43feb3557a05f07622a6bc91c048b99a7412f957305ea8cf072",
+                  "total_cost_ns": "e86fb8dbe821eba7c7b6f0fad48eee957f765ec1ecc2bf3a7f07d9b9016416d1",
+                  "y": "07f51773c6f0839cdbc1b6a619c5b1600240ca1b0fc76d9c81297f4727447dcc"
+                },
+                "error": "",
+                "duration_s": 1.960007,
+                "input_seed": 1996260977,
+                "shape": "zero_m(e3522f90420d4b75)",
+                "agrees_with_reference": true,
+                "max_rel_err": 0.0,
+                "detail": ""
+              }
+            ],
+            "agreement": "both_agree"
+          },
+          "held_out_shapes": {
+            "check": "held_out_shapes",
+            "verdict": "PASS",
+            "detail": "agrees with the reference on all 3 withheld shape(s)",
+            "duration_s": 5.896966,
+            "held_out": [
+              "zero_m(e3522f90420d4b75)",
+              "zero_k(1f9a66f3b058551c)",
+              "single_problem(89f14a14be23f897)"
+            ],
+            "shown_in_prompt": [
+              "empty_sequence(7bac9c9365584aa5)"
+            ],
+            "per_shape": [
+              {
+                "shape": "zero_m(e3522f90420d4b75)",
+                "shape_name": "zero_m",
+                "kwargs": {
+                  "shapes": [
+                    [
+                      0,
+                      16,
+                      16
+                    ],
+                    [
+                      16,
+                      16,
+                      16
+                    ]
+                  ]
+                },
+                "input_seed": 145549100,
+                "ok": true,
+                "max_rel_err": 0.0,
+                "detail": ""
+              },
+              {
+                "shape": "zero_k(1f9a66f3b058551c)",
+                "shape_name": "zero_k",
+                "kwargs": {
+                  "shapes": [
+                    [
+                      16,
+                      16,
+                      0
+                    ],
+                    [
+                      16,
+                      16,
+                      16
+                    ]
+                  ]
+                },
+                "input_seed": 1642359207,
+                "ok": true,
+                "max_rel_err": 0.0,
+                "detail": ""
+              },
+              {
+                "shape": "single_problem(89f14a14be23f897)",
+                "shape_name": "single_problem",
+                "kwargs": {
+                  "shapes": [
+                    [
+                      64,
+                      64,
+                      64
+                    ]
+                  ]
+                },
+                "input_seed": 34556179,
+                "ok": true,
+                "max_rel_err": 0.0,
+                "detail": ""
+              }
+            ],
+            "n_failed": 0
+          },
+          "output_liveness": {
+            "check": "output_liveness",
+            "verdict": "PASS",
+            "detail": "the output is checksummed, changes when an input element changes, is not a copy of an input, and is fully written (skipped: ['input_sensitivity'])",
+            "duration_s": 6.001361,
+            "shape": "zero_m(e3522f90420d4b75)",
+            "input_seed": 394882777,
+            "base_run": {
+              "ok": true,
+              "checksums": {
+                "cache_misses": "d7e86e458414fd2e0e677a562e84c8f12689c93bb77b48c826691342672958fe",
+                "configs_used": "74381c933caf7268702c12af6e27dfc476761a2b8cd5677e0130eca7b9102e0a",
+                "cost_ns": "f055808b98ebc43feb3557a05f07622a6bc91c048b99a7412f957305ea8cf072",
+                "total_cost_ns": "e86fb8dbe821eba7c7b6f0fad48eee957f765ec1ecc2bf3a7f07d9b9016416d1",
+                "y": "8acd04fc9559005af872ec36edd8fd2ae87bdef88a678ac94e242941de47e9fc"
+              },
+              "error": "",
+              "duration_s": 1.990594,
+              "input_seed": 394882777
+            },
+            "consumer": "the sandbox child hashes every output byte, so the result must be materialised and cannot be dead-code-eliminated",
+            "input_sensitivity": {
+              "fired": false,
+              "skip_reason": "perturbing b_flat[0] += 8.0 does not change the reference output either, so an unchanged candidate checksum would prove nothing"
+            },
+            "passthrough": {
+              "fired": false,
+              "detail": "no output is a verbatim copy of an input"
+            },
+            "uninitialised_memory": {
+              "fired": false,
+              "runs": [
+                {
+                  "ok": true,
+                  "checksums": {
+                    "cache_misses": "d7e86e458414fd2e0e677a562e84c8f12689c93bb77b48c826691342672958fe",
+                    "configs_used": "74381c933caf7268702c12af6e27dfc476761a2b8cd5677e0130eca7b9102e0a",
+                    "cost_ns": "f055808b98ebc43feb3557a05f07622a6bc91c048b99a7412f957305ea8cf072",
+                    "total_cost_ns": "e86fb8dbe821eba7c7b6f0fad48eee957f765ec1ecc2bf3a7f07d9b9016416d1",
+                    "y": "8acd04fc9559005af872ec36edd8fd2ae87bdef88a678ac94e242941de47e9fc"
+                  },
+                  "error": "",
+                  "duration_s": 1.992388,
+                  "input_seed": 394882777,
+                  "fill": "float=float('nan'), int=-2147483648"
+                },
+                {
+                  "ok": true,
+                  "checksums": {
+                    "cache_misses": "d7e86e458414fd2e0e677a562e84c8f12689c93bb77b48c826691342672958fe",
+                    "configs_used": "74381c933caf7268702c12af6e27dfc476761a2b8cd5677e0130eca7b9102e0a",
+                    "cost_ns": "f055808b98ebc43feb3557a05f07622a6bc91c048b99a7412f957305ea8cf072",
+                    "total_cost_ns": "e86fb8dbe821eba7c7b6f0fad48eee957f765ec1ecc2bf3a7f07d9b9016416d1",
+                    "y": "8acd04fc9559005af872ec36edd8fd2ae87bdef88a678ac94e242941de47e9fc"
+                  },
+                  "error": "",
+                  "duration_s": 2.014075,
+                  "input_seed": 394882777,
+                  "fill": "float=-98765.4375, int=1234567"
+                }
+              ],
+              "method": "torch.empty/empty_like/empty_strided/Tensor.new_empty and numpy.empty/empty_like are wrapped to write a known fill, so any element the candidate leaves unwritten differs between the two runs",
+              "detail": "identical output under both fills; every output element was written"
+            },
+            "fired_subchecks": [],
+            "skipped_subchecks": [
+              "input_sensitivity"
+            ]
+          },
+          "timing_sanity": {
+            "check": "timing_sanity",
+            "verdict": "PASS",
+            "detail": "every timed shape is above its bytes_moved/1.464e+11 B/s floor (bandwidth from crucible.oracles.o2_perf.measure_achievable_bandwidth().bytes_per_s)",
+            "duration_s": 1.983271,
+            "bandwidth_source": "crucible.oracles.o2_perf.measure_achievable_bandwidth().bytes_per_s",
+            "achievable_bandwidth_bytes_per_s": 146394640861.23553,
+            "per_shape": [
+              {
+                "shape": "zero_m(e3522f90420d4b75)",
+                "bytes_moved": 5120,
+                "floor_s": 3.4973957857194665e-08,
+                "median_s": 0.000177249894477427,
+                "min_s": 0.00017400016076862812,
+                "ratio_median_over_floor": 5068.053641545864,
+                "reps": 30,
+                "statistic": "median"
+              }
+            ],
+            "skipped_shapes": []
+          }
+        },
+        "fired": [
+          "static_denylist"
+        ],
+        "errored": [],
+        "skipped": {},
+        "passed": [
+          "randomized_inputs",
+          "held_out_shapes",
+          "output_liveness",
+          "timing_sanity"
+        ]
+      },
+      "duration_s": 17.81704690004699,
+      "capabilities_used": []
+    },
+    {
+      "oracle": "O4",
+      "verdict": "PASS",
+      "reason": "",
+      "evidence": {
+        "checks": {
+          "graph_break": {
+            "check": "graph_break",
+            "verdict": "PASS",
+            "detail": "torch._dynamo.explain traced 1 graph(s) with 0 graph breaks and torch.compile(fullgraph=True) succeeded (backend=eager, device=cuda, shape=kclass_change_64)",
+            "required_caps": [],
+            "capabilities_used": [],
+            "duration_s": 15.164639,
+            "shape": "kclass_change_64",
+            "shape_key": "9deb37454e92d867",
+            "backend": "eager",
+            "lowered": false,
+            "device": "cuda",
+            "backend_note": "no inductor backend on this machine, so dynamo traced with backend='eager': graph breaks are a tracing property and are genuinely measured, but no kernel was lowered and no lowering defect could have been observed",
+            "candidate": {
+              "tag": "candidate",
+              "outcome": "compiled_cleanly",
+              "backend": "eager",
+              "graph_count": 1,
+              "graph_break_count": 0,
+              "op_count": 64,
+              "break_reasons": [],
+              "fullgraph_ok": true,
+              "fullgraph_error": null,
+              "error": null
+            },
+            "baseline": {
+              "tag": "baseline",
+              "outcome": "compiled_cleanly",
+              "backend": "eager",
+              "graph_count": 1,
+              "graph_break_count": 0,
+              "op_count": 64,
+              "break_reasons": [],
+              "fullgraph_ok": true,
+              "fullgraph_error": null,
+              "error": null
+            },
+            "outcome": "compiled_cleanly",
+            "baseline_graph_break_count": 0,
+            "graph_break_count": 0,
+            "break_reasons": []
+          },
+          "triton_lowering": {
+            "check": "triton_lowering",
+            "verdict": "SKIP",
+            "detail": "triton is unavailable on this machine, so no kernel was compiled and no register-spill count exists: import triton failed: ImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.",
+            "required_caps": [
+              "triton"
+            ],
+            "capabilities_used": [],
+            "duration_s": 3e-06,
+            "required_cap": "triton",
+            "triton_error": "import triton failed: ImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed."
+          },
+          "pallas_portability": {
+            "check": "pallas_portability",
+            "verdict": "SKIP",
+            "detail": "jax is not installed, so no pallas kernel could be lowered for any backend: ModuleNotFoundError: No module named 'jax'",
+            "required_caps": [],
+            "capabilities_used": [],
+            "duration_s": 1.816356,
+            "platforms_requested": [
+              "tpu",
+              "gpu",
+              "cpu"
+            ],
+            "shape": "kclass_change_64",
+            "shape_key": "9deb37454e92d867",
+            "probe": {
+              "ok": false,
+              "stage": "import_jax",
+              "error": "ModuleNotFoundError: No module named 'jax'"
+            }
+          },
+          "ir_diff": {
+            "check": "ir_diff",
+            "verdict": "SKIP",
+            "detail": "no inductor backend on this machine can emit output code, so there is no IR to capture or diff -- inductor_cuda: BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n; inductor_cpu: BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n",
+            "required_caps": [
+              "inductor_cpu"
+            ],
+            "capabilities_used": [],
+            "duration_s": 8e-06
+          }
+        },
+        "fired": [],
+        "errored": [],
+        "skipped": {
+          "triton_lowering": "triton is unavailable on this machine, so no kernel was compiled and no register-spill count exists: import triton failed: ImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.",
+          "pallas_portability": "jax is not installed, so no pallas kernel could be lowered for any backend: ModuleNotFoundError: No module named 'jax'",
+          "ir_diff": "no inductor backend on this machine can emit output code, so there is no IR to capture or diff -- inductor_cuda: BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n; inductor_cpu: BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n"
+        },
+        "passed": [
+          "graph_break"
+        ],
+        "ran": [
+          "graph_break"
+        ]
+      },
+      "duration_s": 16.981061700033024,
+      "capabilities_used": []
+    }
+  ],
+  "environment": {
+    "caps": {
+      "cuda": true,
+      "cuda_device_count": 1,
+      "device_name": "NVIDIA T1000 8GB",
+      "cuda_version": "12.4",
+      "triton": false,
+      "triton_error": "import triton failed: ImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.",
+      "ncu": "C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2024.2.0\\ncu.BAT",
+      "can_lock_clocks": false,
+      "gloo": true,
+      "nccl": false,
+      "cxx_compiler": null,
+      "inductor_cpu": false,
+      "inductor_cuda": false,
+      "torch_version": "2.6.0+cu124",
+      "platform": "Windows-10-10.0.26200-SP0",
+      "details": {
+        "can_lock_clocks": "The current user does not have permission to change clocks for GPU 00000000:01:00.0.\nTerminating early due to previous errors.",
+        "cxx_compiler": "none of cl/g++/gcc/clang++/clang on PATH",
+        "inductor_cpu": "BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n",
+        "inductor_cuda": "BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n",
+        "nccl": "torch.distributed.is_nccl_available() returned False",
+        "triton": "import triton failed: ImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed."
+      }
+    },
+    "python": "3.11.5 (Windows-10-10.0.26200-SP0)",
+    "torch": "2.6.0+cu124",
+    "host": "Archana-PC",
+    "utc": "2026-08-26T18:51:03+00:00"
+  },
+  "duration_s": 55.390978399896994,
+  "candidate_sha256": "23c03e63ae52950c1eab1c39da91935566e77c55e6e75a9838b732789cc84d5a"
+}

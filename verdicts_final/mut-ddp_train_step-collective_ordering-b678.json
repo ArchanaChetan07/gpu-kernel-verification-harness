@@ -1,0 +1,1895 @@
+{
+  "task_id": "mut-ddp_train_step-collective_ordering-b678",
+  "verdict": "FAIL",
+  "executed": true,
+  "oracle_results": [
+    {
+      "oracle": "O1",
+      "verdict": "PASS",
+      "reason": "all 7 shape(s) matched the reference within their derived tolerance",
+      "evidence": {
+        "device": "cuda",
+        "rng_seed": 1234,
+        "tolerance_mode": "stochastic",
+        "tolerance_safety": 4.0,
+        "candidate_execution": "subprocess sandbox (crucible.runner.sandbox.call_entry); candidate code is never executed in the grading interpreter",
+        "reference_execution": "in-process (seed.reference is first-party seed-bank code, not candidate input)",
+        "seed_id": "collectives.ddp_train_step",
+        "entry": "train_step",
+        "per_shape": [
+          {
+            "name": "dp2_even_clip",
+            "shape_key": "71262e9ee8d07721",
+            "kwargs": {
+              "shard_sizes": [
+                16,
+                16
+              ],
+              "d": 8,
+              "k": 4,
+              "steps": 8,
+              "n_param_shards": 2
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 1898328944,
+            "reference_outputs": [
+              {
+                "name": "grad_norms",
+                "dtype": "float32",
+                "shape": [
+                  8
+                ]
+              },
+              {
+                "name": "losses",
+                "dtype": "float32",
+                "shape": [
+                  8
+                ]
+              },
+              {
+                "name": "w",
+                "dtype": "float32",
+                "shape": [
+                  8,
+                  4
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 416,
+            "tolerance": {
+              "rel": 4.862803948967728e-06,
+              "abs": 6.880801317468032e-06,
+              "dtype": "fp32",
+              "accum_depth": 416,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=416, stochastic growth sqrt(K)=20.40, safety=4 -> rel=4.86e-06; scale=1.415e+00 (caller-supplied scale) -> abs=6.88e-06",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 20.396078054371138,
+              "scale": 1.4149863719940186,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=416, stochastic growth sqrt(K)=20.40, safety=4 -> rel=4.86e-06; scale=1.415e+00 (caller-supplied scale) -> abs=6.88e-06",
+            "sandbox_duration_s": 2.0789487999863923,
+            "checksums": {
+              "grad_norms": "c0860fda38fe92999b2d3f444ee311b81962f60d08bfef9e62dc7a2fcaf2015b",
+              "losses": "0fdf4ebd7e4c0d1d3fad5891aae86fa45f398fb13ed78edbbf9f5a0c732fd1b2",
+              "w": "4a70ea6310bd08f79db54506816e3ce5c5a9def4dc5af54ef6194a48c83098c2"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 2.9802322387695312e-08,
+                "max_rel_err": 6.856741012938121e-08,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 8,
+                "n_comparable": 8,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "grad_norms"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 1.1920928955078125e-07,
+                "max_rel_err": 8.788720134720533e-08,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 8,
+                "n_comparable": 8,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "losses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 2.9802322387695312e-08,
+                "max_rel_err": 4.648409124235495e-06,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 32,
+                "n_comparable": 32,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "w"
+              }
+            ],
+            "max_abs_err": 1.1920928955078125e-07,
+            "max_rel_err": 4.648409124235495e-06,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 2.161723400000483
+          },
+          {
+            "name": "dp3_uneven",
+            "shape_key": "1eb0da5b2477ac5b",
+            "kwargs": {
+              "shard_sizes": [
+                21,
+                7,
+                4
+              ],
+              "d": 8,
+              "k": 4,
+              "steps": 8,
+              "n_param_shards": 2
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 514907949,
+            "reference_outputs": [
+              {
+                "name": "grad_norms",
+                "dtype": "float32",
+                "shape": [
+                  8
+                ]
+              },
+              {
+                "name": "losses",
+                "dtype": "float32",
+                "shape": [
+                  8
+                ]
+              },
+              {
+                "name": "w",
+                "dtype": "float32",
+                "shape": [
+                  8,
+                  4
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 464,
+            "tolerance": {
+              "rel": 5.135693366178993e-06,
+              "abs": 6.82828370248993e-06,
+              "dtype": "fp32",
+              "accum_depth": 464,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=464, stochastic growth sqrt(K)=21.54, safety=4 -> rel=5.14e-06; scale=1.330e+00 (caller-supplied scale) -> abs=6.83e-06",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 21.540659228538015,
+              "scale": 1.3295738697052002,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=464, stochastic growth sqrt(K)=21.54, safety=4 -> rel=5.14e-06; scale=1.330e+00 (caller-supplied scale) -> abs=6.83e-06",
+            "sandbox_duration_s": 2.153702999930829,
+            "checksums": {
+              "grad_norms": "cf0bf10133a338a6315e09053131dad79c3035a6e952793e2357663507a523fd",
+              "losses": "45b674849a809700b1828c8499f15125ec457b0bb022acc7f8cdbbaee5d9a93d",
+              "w": "0bb7873ac8d1027decf7dd543f54a99e4a342b135360d4858e69672383f53e81"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 2.9802322387695312e-08,
+                "max_rel_err": 6.674830874804002e-08,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 8,
+                "n_comparable": 8,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "grad_norms"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 1.1920928955078125e-07,
+                "max_rel_err": 9.420037493633233e-08,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 8,
+                "n_comparable": 8,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "losses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 1.4901161193847656e-08,
+                "max_rel_err": 3.4306247064671735e-07,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 32,
+                "n_comparable": 32,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "w"
+              }
+            ],
+            "max_abs_err": 1.1920928955078125e-07,
+            "max_rel_err": 3.4306247064671735e-07,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 2.191444099880755
+          },
+          {
+            "name": "dp3_empty_middle",
+            "shape_key": "69d6aa20d88ce9f3",
+            "kwargs": {
+              "shard_sizes": [
+                13,
+                0,
+                9
+              ],
+              "d": 8,
+              "k": 4,
+              "steps": 8,
+              "n_param_shards": 2
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 1775677170,
+            "reference_outputs": [
+              {
+                "name": "grad_norms",
+                "dtype": "float32",
+                "shape": [
+                  8
+                ]
+              },
+              {
+                "name": "losses",
+                "dtype": "float32",
+                "shape": [
+                  8
+                ]
+              },
+              {
+                "name": "w",
+                "dtype": "float32",
+                "shape": [
+                  8,
+                  4
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 400,
+            "tolerance": {
+              "rel": 4.76837158203125e-06,
+              "abs": 6.657527364950511e-06,
+              "dtype": "fp32",
+              "accum_depth": 400,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=400, stochastic growth sqrt(K)=20.00, safety=4 -> rel=4.77e-06; scale=1.396e+00 (caller-supplied scale) -> abs=6.66e-06",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 20.0,
+              "scale": 1.3961846828460693,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=400, stochastic growth sqrt(K)=20.00, safety=4 -> rel=4.77e-06; scale=1.396e+00 (caller-supplied scale) -> abs=6.66e-06",
+            "sandbox_duration_s": 2.1760203999001533,
+            "checksums": {
+              "grad_norms": "0e649d7bfbee75690c049ebdeb1e44956c18170714a09b8597e3df68875b40cb",
+              "losses": "a20b7adde9556edc8e04a57c1b777cb335c7b1618882aecda317b829453975ad",
+              "w": "af2bd6c74173d0fbfa4552462c06a2d816e7024248594a78b753955fc21bd622"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 2.9802322387695312e-08,
+                "max_rel_err": 6.088158112388495e-08,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 8,
+                "n_comparable": 8,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "grad_norms"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 1.1920928955078125e-07,
+                "max_rel_err": 8.706035824989178e-08,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 8,
+                "n_comparable": 8,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "losses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 1.4901161193847656e-08,
+                "max_rel_err": 1.3186656396019554e-07,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 32,
+                "n_comparable": 32,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "w"
+              }
+            ],
+            "max_abs_err": 1.1920928955078125e-07,
+            "max_rel_err": 1.3186656396019554e-07,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 2.2108109002001584
+          },
+          {
+            "name": "fsdp5_ragged_params",
+            "shape_key": "d835b5043a383cff",
+            "kwargs": {
+              "shard_sizes": [
+                10,
+                6,
+                6
+              ],
+              "d": 7,
+              "k": 3,
+              "steps": 8,
+              "n_param_shards": 5
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 1479915991,
+            "reference_outputs": [
+              {
+                "name": "grad_norms",
+                "dtype": "float32",
+                "shape": [
+                  8
+                ]
+              },
+              {
+                "name": "losses",
+                "dtype": "float32",
+                "shape": [
+                  8
+                ]
+              },
+              {
+                "name": "w",
+                "dtype": "float32",
+                "shape": [
+                  7,
+                  3
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 312,
+            "tolerance": {
+              "rel": 4.21131175342934e-06,
+              "abs": 5.101525459888837e-06,
+              "dtype": "fp32",
+              "accum_depth": 312,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=312, stochastic growth sqrt(K)=17.66, safety=4 -> rel=4.21e-06; scale=1.211e+00 (caller-supplied scale) -> abs=5.10e-06",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 17.663521732655695,
+              "scale": 1.2113863229751587,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=312, stochastic growth sqrt(K)=17.66, safety=4 -> rel=4.21e-06; scale=1.211e+00 (caller-supplied scale) -> abs=5.10e-06",
+            "sandbox_duration_s": 2.0792170998174697,
+            "checksums": {
+              "grad_norms": "dcc78f7a7eb2da5aef9f250a9c32bf697e46ca51f5158b786854a47ee495ac55",
+              "losses": "c67ce1193af5868fbd6d6beb730b3336ea7fae9fb9a94426d8af512f6d382512",
+              "w": "1c1236da39193e6e7cce646958f1b94a6f1b29d95c4a20834b6644b400dbb98a"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 5.960464477539063e-08,
+                "max_rel_err": 1.1140832376150151e-07,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 8,
+                "n_comparable": 8,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "grad_norms"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 1.1920928955078125e-07,
+                "max_rel_err": 1.0654575570187603e-07,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 8,
+                "n_comparable": 8,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "losses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 2.9802322387695312e-08,
+                "max_rel_err": 5.451939922893214e-07,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 21,
+                "n_comparable": 21,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "w"
+              }
+            ],
+            "max_abs_err": 1.1920928955078125e-07,
+            "max_rel_err": 5.451939922893214e-07,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 2.107609299942851
+          },
+          {
+            "name": "fsdp_more_ranks_than_params",
+            "shape_key": "3e9eda48b6558c9b",
+            "kwargs": {
+              "shard_sizes": [
+                8,
+                8
+              ],
+              "d": 2,
+              "k": 2,
+              "steps": 6,
+              "n_param_shards": 9
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 1050599194,
+            "reference_outputs": [
+              {
+                "name": "grad_norms",
+                "dtype": "float32",
+                "shape": [
+                  6
+                ]
+              },
+              {
+                "name": "losses",
+                "dtype": "float32",
+                "shape": [
+                  6
+                ]
+              },
+              {
+                "name": "w",
+                "dtype": "float32",
+                "shape": [
+                  2,
+                  2
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 138,
+            "tolerance": {
+              "rel": 2.800784140699084e-06,
+              "abs": 1.9657313425079035e-06,
+              "dtype": "fp32",
+              "accum_depth": 138,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=138, stochastic growth sqrt(K)=11.75, safety=4 -> rel=2.80e-06; scale=7.019e-01 (caller-supplied scale) -> abs=1.97e-06",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 11.74734012447073,
+              "scale": 0.7018503546714783,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=138, stochastic growth sqrt(K)=11.75, safety=4 -> rel=2.80e-06; scale=7.019e-01 (caller-supplied scale) -> abs=1.97e-06",
+            "sandbox_duration_s": 2.063589899800718,
+            "checksums": {
+              "grad_norms": "6b12cd0a96fc2d17a351f080c2172569a8b137bbcc7b52115c81ac669808acac",
+              "losses": "0845da54589dd3edb34187c859d9777aae870af0e7396ccac8fddd2a666631ce",
+              "w": "ea88a1035a70cb8e3c67d35b2db8aaf90f3de7c6bfb50a2280323374bf41af07"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 4.470348358154297e-08,
+                "max_rel_err": 2.3369301804717702e-07,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 6,
+                "n_comparable": 6,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "grad_norms"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 5.960464477539063e-08,
+                "max_rel_err": 8.839267988396516e-08,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 6,
+                "n_comparable": 6,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "losses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 7.450580596923828e-09,
+                "max_rel_err": 1.5419513301566052e-07,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 4,
+                "n_comparable": 4,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "w"
+              }
+            ],
+            "max_abs_err": 5.960464477539063e-08,
+            "max_rel_err": 2.3369301804717702e-07,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 2.09037599992007
+          },
+          {
+            "name": "dp2_noclip_normonly",
+            "shape_key": "e636a7d4afe9e556",
+            "kwargs": {
+              "shard_sizes": [
+                12,
+                12
+              ],
+              "d": 8,
+              "k": 4,
+              "steps": 6,
+              "n_param_shards": 2,
+              "max_grad_norm": 1000.0
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 1714859175,
+            "reference_outputs": [
+              {
+                "name": "grad_norms",
+                "dtype": "float32",
+                "shape": [
+                  6
+                ]
+              },
+              {
+                "name": "losses",
+                "dtype": "float32",
+                "shape": [
+                  6
+                ]
+              },
+              {
+                "name": "w",
+                "dtype": "float32",
+                "shape": [
+                  8,
+                  4
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 288,
+            "tolerance": {
+              "rel": 4.046097457045827e-06,
+              "abs": 5.926352159901912e-06,
+              "dtype": "fp32",
+              "accum_depth": 288,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=288, stochastic growth sqrt(K)=16.97, safety=4 -> rel=4.05e-06; scale=1.465e+00 (caller-supplied scale) -> abs=5.93e-06",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 16.97056274847714,
+              "scale": 1.4647082090377808,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=288, stochastic growth sqrt(K)=16.97, safety=4 -> rel=4.05e-06; scale=1.465e+00 (caller-supplied scale) -> abs=5.93e-06",
+            "sandbox_duration_s": 2.057273200014606,
+            "checksums": {
+              "grad_norms": "8687d0496444ec5887595b9041a7e030f87829675803753b4535440509adace9",
+              "losses": "041386e8bf38b70b6dd59e481ea594217ebe8313ffe7d62d86e940e036dd5d89",
+              "w": "9ca5e3ef9db315e73036d0ae5cd93958712829d14eb56c54a1212680bcb097f8"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 2.9802322387695312e-08,
+                "max_rel_err": 8.853131680241174e-08,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 6,
+                "n_comparable": 6,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "grad_norms"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 1.1920928955078125e-07,
+                "max_rel_err": 8.537639764364557e-08,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 6,
+                "n_comparable": 6,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "losses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 2.9802322387695312e-08,
+                "max_rel_err": 5.324474543580718e-07,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 32,
+                "n_comparable": 32,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "w"
+              }
+            ],
+            "max_abs_err": 1.1920928955078125e-07,
+            "max_rel_err": 5.324474543580718e-07,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 2.082623800029978
+          },
+          {
+            "name": "dp1_single_decoy",
+            "shape_key": "14de4fb9b38fb603",
+            "kwargs": {
+              "shard_sizes": [
+                24
+              ],
+              "d": 8,
+              "k": 4,
+              "steps": 6,
+              "n_param_shards": 1
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 350114955,
+            "reference_outputs": [
+              {
+                "name": "grad_norms",
+                "dtype": "float32",
+                "shape": [
+                  6
+                ]
+              },
+              {
+                "name": "losses",
+                "dtype": "float32",
+                "shape": [
+                  6
+                ]
+              },
+              {
+                "name": "w",
+                "dtype": "float32",
+                "shape": [
+                  8,
+                  4
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 348,
+            "tolerance": {
+              "rel": 4.447640921158226e-06,
+              "abs": 6.758339442280884e-06,
+              "dtype": "fp32",
+              "accum_depth": 348,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=348, stochastic growth sqrt(K)=18.65, safety=4 -> rel=4.45e-06; scale=1.520e+00 (caller-supplied scale) -> abs=6.76e-06",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 18.65475810617763,
+              "scale": 1.5195335149765015,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=348, stochastic growth sqrt(K)=18.65, safety=4 -> rel=4.45e-06; scale=1.520e+00 (caller-supplied scale) -> abs=6.76e-06",
+            "sandbox_duration_s": 2.1880773999728262,
+            "checksums": {
+              "grad_norms": "934bf45bea4a9bb073575818b9a30d3c9283335aa1614508514f8f0f4870ebc1",
+              "losses": "a62901c864db1ebbb15f342645d4c654d2ff57cfaa7c177ffca6686d88b32a23",
+              "w": "66637cfc10e5e31e7979c919362c64f9f8f37e82f7bd3546e12c91e806a21a85"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 5.960464477539063e-08,
+                "max_rel_err": 1.0067926285060043e-07,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 6,
+                "n_comparable": 6,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "grad_norms"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 1.1920928955078125e-07,
+                "max_rel_err": 8.177499495652718e-08,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 6,
+                "n_comparable": 6,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "losses"
+              },
+              {
+                "passed": true,
+                "max_abs_err": 1.4901161193847656e-08,
+                "max_rel_err": 5.053421523720652e-07,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 32,
+                "n_comparable": 32,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "w"
+              }
+            ],
+            "max_abs_err": 1.1920928955078125e-07,
+            "max_rel_err": 5.053421523720652e-07,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 2.2254202000331134
+          }
+        ],
+        "shapes_evaluated": [
+          "dp2_even_clip",
+          "dp3_uneven",
+          "dp3_empty_middle",
+          "fsdp5_ragged_params",
+          "fsdp_more_ranks_than_params",
+          "dp2_noclip_normonly",
+          "dp1_single_decoy"
+        ],
+        "shapes_not_run": [],
+        "first_break_shape": null,
+        "first_break": null,
+        "summary": {
+          "n_shapes": 7,
+          "n_passed": 7,
+          "n_failed": 0,
+          "n_not_run": 0,
+          "n_compared": 7
+        },
+        "max_abs_err": 1.1920928955078125e-07,
+        "max_rel_err": 4.648409124235495e-06
+      },
+      "duration_s": 15.071242399979383,
+      "capabilities_used": []
+    },
+    {
+      "oracle": "O3",
+      "verdict": "FAIL",
+      "reason": "anti-cheat check(s) ['static_denylist'] fired -- static_denylist: 1 static finding(s); first: dynamic_attribute 'getattr(torch, <dynamic>)' at line 55 col 10 ('getattr(torch, accum_dtype)')",
+      "evidence": {
+        "checks": {
+          "static_denylist": {
+            "check": "static_denylist",
+            "verdict": "FAIL",
+            "detail": "1 static finding(s); first: dynamic_attribute 'getattr(torch, <dynamic>)' at line 55 col 10 ('getattr(torch, accum_dtype)')",
+            "duration_s": 0.005861,
+            "denylist": [
+              "torch.nn.utils.clip_grad_norm_",
+              "torch.nn.utils.clip_grad_value_",
+              "torch.autograd.grad",
+              "torch.autograd.backward",
+              "torch.nn.functional.cross_entropy",
+              "torch.nn.functional.nll_loss",
+              "torch.nn.functional.log_softmax",
+              "torch.nn.CrossEntropyLoss",
+              "torch.optim",
+              "crucible.seeds.collectives"
+            ],
+            "denylist_empty": false,
+            "aliases": {
+              "torch": "torch"
+            },
+            "hits": [
+              {
+                "kind": "dynamic_attribute",
+                "symbol": "getattr(torch, <dynamic>)",
+                "matched": "",
+                "line": 55,
+                "col": 10,
+                "node": "getattr(torch, accum_dtype)",
+                "detail": "attribute name is not statically knowable; no static policy can bind it"
+              }
+            ],
+            "hit_count": 1,
+            "hits_by_kind": {
+              "dynamic_attribute": 1
+            }
+          },
+          "randomized_inputs": {
+            "check": "randomized_inputs",
+            "verdict": "PASS",
+            "detail": "agrees with the reference on both freshly seeded input sets [510366908, 1269732820]",
+            "duration_s": 4.362402,
+            "shape": "fsdp_more_ranks_than_params(3e9eda48b6558c9b)",
+            "shapes_rejected_as_degenerate": [],
+            "input_seeds": [
+              510366908,
+              1269732820
+            ],
+            "inputs_differed": true,
+            "identical_checksums": false,
+            "runs": [
+              {
+                "ok": true,
+                "checksums": {
+                  "grad_norms": "6fad87a229abb99e86b37e7916744169fef10f69242fe3e0d969baa03845dfc0",
+                  "losses": "eeaab9658d5a3730fdbc07af92c01b52e4a3e7f69c8ffa4b5f0d3ab1942008c5",
+                  "w": "287320ddf5f7b9ce240e9ea65337e5deb2b5603fd9aa1405f9f5130e5c08d653"
+                },
+                "error": "",
+                "duration_s": 2.232396,
+                "input_seed": 510366908,
+                "shape": "fsdp_more_ranks_than_params(3e9eda48b6558c9b)",
+                "agrees_with_reference": true,
+                "max_rel_err": 2.0355878310874833e-06,
+                "detail": ""
+              },
+              {
+                "ok": true,
+                "checksums": {
+                  "grad_norms": "3308186dd0b643bddf5da54b85dc94ad83606a05e77362c0d2166c9a0b87a05c",
+                  "losses": "349f4a9c0f050d3a0497479d87c44207e955f09e71115c2210832113ff0e0d77",
+                  "w": "7d3f42b2b7b3bbd41ef3e48d7b0b5a1b974a60d523552f2d170ae6028f55fd3a"
+                },
+                "error": "",
+                "duration_s": 2.090576,
+                "input_seed": 1269732820,
+                "shape": "fsdp_more_ranks_than_params(3e9eda48b6558c9b)",
+                "agrees_with_reference": true,
+                "max_rel_err": 1.4478769020849356e-07,
+                "detail": ""
+              }
+            ],
+            "agreement": "both_agree"
+          },
+          "held_out_shapes": {
+            "check": "held_out_shapes",
+            "verdict": "PASS",
+            "detail": "agrees with the reference on all 1 withheld shape(s)",
+            "duration_s": 2.181511,
+            "held_out": [
+              "dp3_empty_middle(69d6aa20d88ce9f3)"
+            ],
+            "shown_in_prompt": [
+              "fsdp_more_ranks_than_params(3e9eda48b6558c9b)",
+              "dp1_single_decoy(14de4fb9b38fb603)",
+              "dp2_noclip_normonly(e636a7d4afe9e556)",
+              "fsdp5_ragged_params(d835b5043a383cff)",
+              "dp2_even_clip(71262e9ee8d07721)",
+              "dp3_uneven(1eb0da5b2477ac5b)"
+            ],
+            "per_shape": [
+              {
+                "shape": "dp3_empty_middle(69d6aa20d88ce9f3)",
+                "shape_name": "dp3_empty_middle",
+                "kwargs": {
+                  "shard_sizes": [
+                    13,
+                    0,
+                    9
+                  ],
+                  "d": 8,
+                  "k": 4,
+                  "steps": 8,
+                  "n_param_shards": 2
+                },
+                "input_seed": 630966539,
+                "ok": true,
+                "max_rel_err": 1.5632121408309073e-06,
+                "detail": ""
+              }
+            ],
+            "n_failed": 0
+          },
+          "output_liveness": {
+            "check": "output_liveness",
+            "verdict": "PASS",
+            "detail": "the output is checksummed, changes when an input element changes, is not a copy of an input, and is fully written",
+            "duration_s": 8.012784,
+            "shape": "dp3_empty_middle(69d6aa20d88ce9f3)",
+            "input_seed": 1719897039,
+            "base_run": {
+              "ok": true,
+              "checksums": {
+                "grad_norms": "08c352d0c69d9d89355293a7cf7130dde3b39ad606ed04b0a0d3d22ce33dc715",
+                "losses": "8a0d873a5234cb845f99895ce4911bbb867f9b5c2e9066ed717fc064e7fc3422",
+                "w": "b9669a676e5420e450f87d72b7e9bf0a2cfebb9454b2575a3b6349c040bb06c7"
+              },
+              "error": "",
+              "duration_s": 2.119507,
+              "input_seed": 1719897039
+            },
+            "consumer": "the sandbox child hashes every output byte, so the result must be materialised and cannot be dead-code-eliminated",
+            "input_sensitivity": {
+              "fired": false,
+              "perturbation": "x[0] += 1.0",
+              "perturbed_run": {
+                "ok": true,
+                "checksums": {
+                  "grad_norms": "a6c8dbe631ca3da2d45f3b15398a26d8575e322d281b972fae195f134b3ce509",
+                  "losses": "2c6d2f3f8b93701c14ead31b8e1d0d64a2c562b9c7cb352ea62d17eb53ec94ae",
+                  "w": "559dc3ce71f9148bef7f46f5023e62a590ff7aadc2d81e8c0b89797b0b5a52b7"
+                },
+                "error": "",
+                "duration_s": 2.02663,
+                "input_seed": 1719897039
+              },
+              "detail": "checksum changed after x[0] += 1.0, as it must"
+            },
+            "passthrough": {
+              "fired": false,
+              "detail": "no output is a verbatim copy of an input"
+            },
+            "uninitialised_memory": {
+              "fired": false,
+              "runs": [
+                {
+                  "ok": true,
+                  "checksums": {
+                    "grad_norms": "08c352d0c69d9d89355293a7cf7130dde3b39ad606ed04b0a0d3d22ce33dc715",
+                    "losses": "8a0d873a5234cb845f99895ce4911bbb867f9b5c2e9066ed717fc064e7fc3422",
+                    "w": "b9669a676e5420e450f87d72b7e9bf0a2cfebb9454b2575a3b6349c040bb06c7"
+                  },
+                  "error": "",
+                  "duration_s": 1.938245,
+                  "input_seed": 1719897039,
+                  "fill": "float=float('nan'), int=-2147483648"
+                },
+                {
+                  "ok": true,
+                  "checksums": {
+                    "grad_norms": "08c352d0c69d9d89355293a7cf7130dde3b39ad606ed04b0a0d3d22ce33dc715",
+                    "losses": "8a0d873a5234cb845f99895ce4911bbb867f9b5c2e9066ed717fc064e7fc3422",
+                    "w": "b9669a676e5420e450f87d72b7e9bf0a2cfebb9454b2575a3b6349c040bb06c7"
+                  },
+                  "error": "",
+                  "duration_s": 1.908117,
+                  "input_seed": 1719897039,
+                  "fill": "float=-98765.4375, int=1234567"
+                }
+              ],
+              "method": "torch.empty/empty_like/empty_strided/Tensor.new_empty and numpy.empty/empty_like are wrapped to write a known fill, so any element the candidate leaves unwritten differs between the two runs",
+              "detail": "identical output under both fills; every output element was written"
+            },
+            "fired_subchecks": [],
+            "skipped_subchecks": []
+          },
+          "timing_sanity": {
+            "check": "timing_sanity",
+            "verdict": "PASS",
+            "detail": "every timed shape is above its bytes_moved/1.464e+11 B/s floor (bandwidth from crucible.oracles.o2_perf.measure_achievable_bandwidth().bytes_per_s)",
+            "duration_s": 2.144694,
+            "bandwidth_source": "crucible.oracles.o2_perf.measure_achievable_bandwidth().bytes_per_s",
+            "achievable_bandwidth_bytes_per_s": 146394640861.23553,
+            "per_shape": [
+              {
+                "shape": "dp3_empty_middle(69d6aa20d88ce9f3)",
+                "bytes_moved": 9408,
+                "floor_s": 6.42646475625952e-08,
+                "median_s": 0.004900850122794509,
+                "min_s": 0.004768099868670106,
+                "ratio_median_over_floor": 76260.43724928191,
+                "reps": 30,
+                "statistic": "median"
+              }
+            ],
+            "skipped_shapes": []
+          }
+        },
+        "fired": [
+          "static_denylist"
+        ],
+        "errored": [],
+        "skipped": {},
+        "passed": [
+          "randomized_inputs",
+          "held_out_shapes",
+          "output_liveness",
+          "timing_sanity"
+        ]
+      },
+      "duration_s": 16.707462099846452,
+      "capabilities_used": []
+    },
+    {
+      "oracle": "O5",
+      "verdict": "PASS",
+      "reason": "the run is invariant to the world size across [2, 4]: every per-step loss, global grad-norm and final-parameter deviation stayed within k=3 x the measured non-associativity floor (losses=3.576e-07 (measured), grad_norms=6.799e-08 (ulp_fallback), final_params=1.676e-07 (ulp_fallback))",
+      "evidence": {
+        "launcher": "spawn",
+        "backend": "gloo",
+        "k": 3.0,
+        "candidate_execution": "every rank runs the candidate's distributed source out of the grading interpreter (torch.multiprocessing.spawn + gloo FileStore)",
+        "tolerance_model": "max per-step |series_N - series_1| <= k * noise_floor, where the floor is measured on this machine from repeated single-rank runs under permuted microbatch accumulation order. No constant tolerance is used anywhere.",
+        "source_provenance": "seed 'collectives.ddp_train_step' extras['gloo_source']",
+        "entry": "train_step_dist",
+        "spec": {
+          "n_samples": 50,
+          "d": 12,
+          "h": 16,
+          "k": 4,
+          "steps": 50,
+          "lr": 0.5,
+          "max_grad_norm": 0.05,
+          "accum_dtype": "float32",
+          "seed": 1234,
+          "init_scale": 0.3
+        },
+        "n_params": 304,
+        "world_sizes_requested": [
+          2,
+          4
+        ],
+        "world_sizes_excluded": [],
+        "per_launch_timeout_s": 240.0,
+        "noise_floor_launches": [
+          {
+            "world_size": 1,
+            "launcher": "spawn",
+            "ok": true,
+            "duration_s": 2.013203,
+            "timed_out": false,
+            "error": "",
+            "error_kind": "",
+            "pids": [
+              49012
+            ],
+            "alive_after_reap": [],
+            "reaped": true,
+            "missing_ranks": [],
+            "rank_errors": {},
+            "ranks_reporting": [
+              0
+            ]
+          },
+          {
+            "world_size": 1,
+            "launcher": "spawn",
+            "ok": true,
+            "duration_s": 2.076135,
+            "timed_out": false,
+            "error": "",
+            "error_kind": "",
+            "pids": [
+              49760
+            ],
+            "alive_after_reap": [],
+            "reaped": true,
+            "missing_ranks": [],
+            "rank_errors": {},
+            "ranks_reporting": [
+              0
+            ]
+          }
+        ],
+        "noise_floor": {
+          "runs": 2,
+          "permutation_salts": [
+            0,
+            1
+          ],
+          "launcher": "spawn",
+          "method": "the single-rank config run repeatedly, identical except for the order in which the microbatch is accumulated (sample order permuted by i -> (a*i+b) mod n); the pairwise deviation is float non-associativity and nothing else",
+          "entries": {
+            "losses": {
+              "quantity": "losses",
+              "measured": 3.5762786865234375e-07,
+              "ulp_bound": 2.0846384529704665e-07,
+              "used": 3.5762786865234375e-07,
+              "source": "measured",
+              "scale": 1.7487214803695679,
+              "worst_pair": [
+                0,
+                1
+              ],
+              "per_step": [
+                1.1920928955078125e-07,
+                1.1920928955078125e-07,
+                0.0,
+                2.384185791015625e-07,
+                0.0,
+                0.0,
+                0.0,
+                1.1920928955078125e-07,
+                0.0,
+                2.384185791015625e-07,
+                1.1920928955078125e-07,
+                1.1920928955078125e-07,
+                0.0,
+                0.0,
+                2.384185791015625e-07,
+                0.0,
+                0.0,
+                1.1920928955078125e-07,
+                1.1920928955078125e-07,
+                2.384185791015625e-07,
+                1.1920928955078125e-07,
+                0.0,
+                1.1920928955078125e-07,
+                3.5762786865234375e-07,
+                0.0,
+                1.1920928955078125e-07,
+                0.0,
+                0.0,
+                1.1920928955078125e-07,
+                1.1920928955078125e-07,
+                1.1920928955078125e-07,
+                0.0,
+                0.0,
+                0.0,
+                1.1920928955078125e-07,
+                1.1920928955078125e-07,
+                0.0,
+                0.0,
+                2.384185791015625e-07,
+                1.1920928955078125e-07,
+                0.0,
+                1.1920928955078125e-07,
+                1.1920928955078125e-07,
+                1.1920928955078125e-07,
+                0.0,
+                0.0,
+                1.1920928955078125e-07,
+                1.1920928955078125e-07,
+                1.1920928955078125e-07,
+                0.0
+              ]
+            },
+            "grad_norms": {
+              "quantity": "grad_norms",
+              "measured": 5.960464477539063e-08,
+              "ulp_bound": 6.799108831501144e-08,
+              "used": 6.799108831501144e-08,
+              "source": "ulp_fallback",
+              "scale": 0.5703505873680115,
+              "worst_pair": [
+                0,
+                1
+              ],
+              "per_step": [
+                0.0,
+                5.960464477539063e-08,
+                0.0,
+                5.960464477539063e-08,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                5.960464477539063e-08,
+                5.960464477539063e-08,
+                5.960464477539063e-08,
+                2.9802322387695312e-08,
+                2.9802322387695312e-08,
+                5.960464477539063e-08,
+                2.9802322387695312e-08,
+                2.9802322387695312e-08,
+                0.0,
+                0.0,
+                2.9802322387695312e-08,
+                0.0,
+                0.0,
+                2.9802322387695312e-08,
+                0.0,
+                0.0,
+                2.9802322387695312e-08,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.9802322387695312e-08,
+                2.9802322387695312e-08,
+                0.0,
+                2.9802322387695312e-08,
+                2.9802322387695312e-08,
+                0.0,
+                2.9802322387695312e-08,
+                0.0,
+                2.9802322387695312e-08,
+                0.0,
+                0.0,
+                0.0,
+                2.9802322387695312e-08,
+                2.9802322387695312e-08,
+                2.9802322387695312e-08,
+                2.9802322387695312e-08,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "final_params": {
+              "quantity": "final_params",
+              "measured": 9.592622518539429e-08,
+              "ulp_bound": 1.6761876889945179e-07,
+              "used": 1.6761876889945179e-07,
+              "source": "ulp_fallback",
+              "scale": 1.4060881457400924,
+              "worst_pair": [
+                0,
+                1
+              ],
+              "per_step": []
+            }
+          },
+          "baseline_series": {
+            "losses": [
+              1.7487214803695679,
+              1.7345397472381592,
+              1.7205122709274292,
+              1.706639289855957,
+              1.6929212808609009,
+              1.6793584823608398,
+              1.6659513711929321,
+              1.6527000665664673,
+              1.6396046876907349,
+              1.6266652345657349,
+              1.6138818264007568,
+              1.6012547016143799,
+              1.5887837409973145,
+              1.576468825340271,
+              1.5643099546432495,
+              1.55230712890625,
+              1.5404601097106934,
+              1.52876877784729,
+              1.5172326564788818,
+              1.5058518648147583,
+              1.4946261644363403,
+              1.4835551977157593,
+              1.4726386070251465,
+              1.461876392364502,
+              1.4512673616409302,
+              1.440812110900879,
+              1.4305099248886108,
+              1.4203604459762573,
+              1.4103631973266602,
+              1.4005180597305298,
+              1.3908240795135498,
+              1.3812812566757202,
+              1.3718889951705933,
+              1.3626468181610107,
+              1.3535542488098145,
+              1.344610571861267,
+              1.3358157873153687,
+              1.3271687030792236,
+              1.318669319152832,
+              1.310316562652588,
+              1.302110195159912,
+              1.2940493822097778,
+              1.2861335277557373,
+              1.2783617973327637,
+              1.2707338333129883,
+              1.2632485628128052,
+              1.2559053897857666,
+              1.2487034797668457,
+              1.2416419982910156,
+              1.2347198724746704
+            ],
+            "grad_norms": [
+              0.5703505873680115,
+              0.5641914010047913,
+              0.5580149292945862,
+              0.551823079586029,
+              0.5456177592277527,
+              0.539401113986969,
+              0.533174991607666,
+              0.526941180229187,
+              0.5207015872001648,
+              0.5144578814506531,
+              0.5082118511199951,
+              0.5019649863243103,
+              0.49571892619132996,
+              0.4894750714302063,
+              0.48323482275009155,
+              0.4769994020462036,
+              0.4707701802253723,
+              0.4645482003688812,
+              0.4583345651626587,
+              0.4521302580833435,
+              0.44593626260757446,
+              0.43975338339805603,
+              0.43358251452445984,
+              0.42742446064949036,
+              0.4212798774242401,
+              0.4151494801044464,
+              0.40903398394584656,
+              0.4029340147972107,
+              0.39685019850730896,
+              0.3907831311225891,
+              0.38473349809646606,
+              0.37870192527770996,
+              0.37268903851509094,
+              0.36669549345970154,
+              0.3607219159603119,
+              0.3547690808773041,
+              0.3488377332687378,
+              0.34292861819267273,
+              0.33704259991645813,
+              0.33118048310279846,
+              0.3253432512283325,
+              0.3195318281650543,
+              0.31374725699424744,
+              0.30799058079719543,
+              0.3022629916667938,
+              0.2965656518936157,
+              0.29089972376823425,
+              0.28526657819747925,
+              0.2796674966812134,
+              0.2741038501262665
+            ]
+          }
+        },
+        "world_sizes": {
+          "2": {
+            "world_size": 2,
+            "status": "pass",
+            "shard_sizes": [
+              25,
+              25
+            ],
+            "checks": {
+              "losses": {
+                "check": "losses",
+                "verdict": "PASS",
+                "observed_max_deviation": 2.384185791015625e-07,
+                "noise_floor": 3.5762786865234375e-07,
+                "k": 3.0,
+                "threshold": 1.0728836059570312e-06,
+                "margin": 8.344650268554688e-07,
+                "ratio_to_floor": 0.6666666666666666,
+                "first_bad_step": null,
+                "peak_step": 3,
+                "detail": "per-step loss stayed within 3 x the measured noise floor (3.576e-07, measured); peak deviation 2.384e-07 at step 3, margin 8.345e-07",
+                "per_step_deviation": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  2.384185791015625e-07,
+                  1.1920928955078125e-07,
+                  2.384185791015625e-07,
+                  1.1920928955078125e-07,
+                  0.0,
+                  2.384185791015625e-07,
+                  0.0,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  2.384185791015625e-07,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  0.0,
+                  1.1920928955078125e-07,
+                  0.0,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.1920928955078125e-07,
+                  0.0,
+                  0.0,
+                  2.384185791015625e-07,
+                  1.1920928955078125e-07,
+                  0.0,
+                  0.0,
+                  1.1920928955078125e-07,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.1920928955078125e-07
+                ]
+              },
+              "grad_norms": {
+                "check": "grad_norms",
+                "verdict": "PASS",
+                "observed_max_deviation": 5.960464477539063e-08,
+                "noise_floor": 6.799108831501144e-08,
+                "k": 3.0,
+                "threshold": 2.0397326494503432e-07,
+                "margin": 1.443686201696437e-07,
+                "ratio_to_floor": 0.8766537829080578,
+                "first_bad_step": null,
+                "peak_step": 1,
+                "detail": "global grad norm stayed within 3 x the measured noise floor (6.799e-08, ulp_fallback); peak deviation 5.960e-08 at step 1, margin 1.444e-07",
+                "per_step_deviation": [
+                  0.0,
+                  5.960464477539063e-08,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  5.960464477539063e-08,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  2.9802322387695312e-08,
+                  2.9802322387695312e-08,
+                  2.9802322387695312e-08,
+                  2.9802322387695312e-08,
+                  2.9802322387695312e-08,
+                  0.0,
+                  0.0,
+                  2.9802322387695312e-08,
+                  0.0,
+                  2.9802322387695312e-08,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  2.9802322387695312e-08,
+                  2.9802322387695312e-08,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  2.9802322387695312e-08,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  2.9802322387695312e-08,
+                  0.0,
+                  2.9802322387695312e-08,
+                  2.9802322387695312e-08,
+                  0.0,
+                  2.9802322387695312e-08,
+                  0.0
+                ]
+              },
+              "final_params": {
+                "check": "final_params",
+                "verdict": "PASS",
+                "observed_max_deviation": 6.658956408500671e-08,
+                "noise_floor": 1.6761876889945179e-07,
+                "k": 3.0,
+                "threshold": 5.028563066983554e-07,
+                "margin": 4.3626674261334864e-07,
+                "ratio_to_floor": 0.39726794631782136,
+                "first_bad_step": null,
+                "peak_step": 0,
+                "detail": "final parameter L2 distance stayed within 3 x the measured noise floor (1.676e-07, ulp_fallback); peak deviation 6.659e-08 at step 0, margin 4.363e-07",
+                "per_step_deviation": [
+                  6.658956408500671e-08
+                ]
+              },
+              "rank_agreement": {
+                "check": "rank_agreement",
+                "verdict": "PASS",
+                "observed_max_deviation": 0.0,
+                "noise_floor": 3.5762786865234375e-07,
+                "k": 3.0,
+                "threshold": 1.0728836059570312e-06,
+                "margin": 1.0728836059570312e-06,
+                "ratio_to_floor": 0.0,
+                "first_bad_step": null,
+                "peak_step": 0,
+                "detail": "disagreement between ranks after the collectives stayed within 3 x the measured noise floor (3.576e-07, measured); peak deviation 0.000e+00 at step 0, margin 1.073e-06",
+                "per_step_deviation": [
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "failed_checks": [],
+            "final_params_l2": 6.658956408500671e-08,
+            "launch": {
+              "world_size": 2,
+              "launcher": "spawn",
+              "ok": true,
+              "duration_s": 2.231524,
+              "timed_out": false,
+              "error": "",
+              "error_kind": "",
+              "pids": [
+                51048,
+                51292
+              ],
+              "alive_after_reap": [],
+              "reaped": true,
+              "missing_ranks": [],
+              "rank_errors": {},
+              "ranks_reporting": [
+                0,
+                1
+              ]
+            }
+          },
+          "4": {
+            "world_size": 4,
+            "status": "pass",
+            "shard_sizes": [
+              13,
+              13,
+              12,
+              12
+            ],
+            "checks": {
+              "losses": {
+                "check": "losses",
+                "verdict": "PASS",
+                "observed_max_deviation": 2.384185791015625e-07,
+                "noise_floor": 3.5762786865234375e-07,
+                "k": 3.0,
+                "threshold": 1.0728836059570312e-06,
+                "margin": 8.344650268554688e-07,
+                "ratio_to_floor": 0.6666666666666666,
+                "first_bad_step": null,
+                "peak_step": 2,
+                "detail": "per-step loss stayed within 3 x the measured noise floor (3.576e-07, measured); peak deviation 2.384e-07 at step 2, margin 8.345e-07",
+                "per_step_deviation": [
+                  1.1920928955078125e-07,
+                  0.0,
+                  2.384185791015625e-07,
+                  0.0,
+                  0.0,
+                  2.384185791015625e-07,
+                  0.0,
+                  1.1920928955078125e-07,
+                  2.384185791015625e-07,
+                  2.384185791015625e-07,
+                  0.0,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.1920928955078125e-07,
+                  0.0,
+                  0.0,
+                  2.384185791015625e-07,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  0.0,
+                  1.1920928955078125e-07,
+                  0.0,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07,
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.1920928955078125e-07,
+                  0.0,
+                  0.0,
+                  1.1920928955078125e-07,
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.1920928955078125e-07,
+                  0.0,
+                  1.1920928955078125e-07,
+                  1.1920928955078125e-07
+                ]
+              },
+              "grad_norms": {
+                "check": "grad_norms",
+                "verdict": "PASS",
+                "observed_max_deviation": 5.960464477539063e-08,
+                "noise_floor": 6.799108831501144e-08,
+                "k": 3.0,
+                "threshold": 2.0397326494503432e-07,
+                "margin": 1.443686201696437e-07,
+                "ratio_to_floor": 0.8766537829080578,
+                "first_bad_step": null,
+                "peak_step": 4,
+                "detail": "global grad norm stayed within 3 x the measured noise floor (6.799e-08, ulp_fallback); peak deviation 5.960e-08 at step 4, margin 1.444e-07",
+                "per_step_deviation": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  5.960464477539063e-08,
+                  0.0,
+                  5.960464477539063e-08,
+                  0.0,
+                  0.0,
+                  0.0,
+                  5.960464477539063e-08,
+                  0.0,
+                  2.9802322387695312e-08,
+                  2.9802322387695312e-08,
+                  2.9802322387695312e-08,
+                  2.9802322387695312e-08,
+                  2.9802322387695312e-08,
+                  2.9802322387695312e-08,
+                  0.0,
+                  0.0,
+                  0.0,
+                  2.9802322387695312e-08,
+                  2.9802322387695312e-08,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  2.9802322387695312e-08,
+                  2.9802322387695312e-08,
+                  2.9802322387695312e-08,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  2.9802322387695312e-08,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  2.9802322387695312e-08,
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              },
+              "final_params": {
+                "check": "final_params",
+                "verdict": "PASS",
+                "observed_max_deviation": 9.888369791213196e-08,
+                "noise_floor": 1.6761876889945179e-07,
+                "k": 3.0,
+                "threshold": 5.028563066983554e-07,
+                "margin": 4.039726087862234e-07,
+                "ratio_to_floor": 0.5899321332651511,
+                "first_bad_step": null,
+                "peak_step": 0,
+                "detail": "final parameter L2 distance stayed within 3 x the measured noise floor (1.676e-07, ulp_fallback); peak deviation 9.888e-08 at step 0, margin 4.040e-07",
+                "per_step_deviation": [
+                  9.888369791213196e-08
+                ]
+              },
+              "rank_agreement": {
+                "check": "rank_agreement",
+                "verdict": "PASS",
+                "observed_max_deviation": 0.0,
+                "noise_floor": 3.5762786865234375e-07,
+                "k": 3.0,
+                "threshold": 1.0728836059570312e-06,
+                "margin": 1.0728836059570312e-06,
+                "ratio_to_floor": 0.0,
+                "first_bad_step": null,
+                "peak_step": 0,
+                "detail": "disagreement between ranks after the collectives stayed within 3 x the measured noise floor (3.576e-07, measured); peak deviation 0.000e+00 at step 0, margin 1.073e-06",
+                "per_step_deviation": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0
+                ]
+              }
+            },
+            "failed_checks": [],
+            "final_params_l2": 9.888369791213196e-08,
+            "launch": {
+              "world_size": 4,
+              "launcher": "spawn",
+              "ok": true,
+              "duration_s": 2.870432,
+              "timed_out": false,
+              "error": "",
+              "error_kind": "",
+              "pids": [
+                45472,
+                47840,
+                42148,
+                42016
+              ],
+              "alive_after_reap": [],
+              "reaped": true,
+              "missing_ranks": [],
+              "rank_errors": {},
+              "ranks_reporting": [
+                0,
+                1,
+                2,
+                3
+              ]
+            }
+          }
+        },
+        "duration_s": 9.243018500041217
+      },
+      "duration_s": 9.243703300133348,
+      "capabilities_used": [
+        "gloo"
+      ]
+    }
+  ],
+  "environment": {
+    "caps": {
+      "cuda": true,
+      "cuda_device_count": 1,
+      "device_name": "NVIDIA T1000 8GB",
+      "cuda_version": "12.4",
+      "triton": false,
+      "triton_error": "import triton failed: ImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.",
+      "ncu": "C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2024.2.0\\ncu.BAT",
+      "can_lock_clocks": false,
+      "gloo": true,
+      "nccl": false,
+      "cxx_compiler": null,
+      "inductor_cpu": false,
+      "inductor_cuda": false,
+      "torch_version": "2.6.0+cu124",
+      "platform": "Windows-10-10.0.26200-SP0",
+      "details": {
+        "can_lock_clocks": "The current user does not have permission to change clocks for GPU 00000000:01:00.0.\nTerminating early due to previous errors.",
+        "cxx_compiler": "none of cl/g++/gcc/clang++/clang on PATH",
+        "inductor_cpu": "BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n",
+        "inductor_cuda": "BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n",
+        "nccl": "torch.distributed.is_nccl_available() returned False",
+        "triton": "import triton failed: ImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed."
+      }
+    },
+    "python": "3.11.5 (Windows-10-10.0.26200-SP0)",
+    "torch": "2.6.0+cu124",
+    "host": "Archana-PC",
+    "utc": "2026-08-26T18:51:44+00:00"
+  },
+  "duration_s": 41.02371550002135,
+  "candidate_sha256": "d4d0c6ffba7f008566c5b36fd5ca6cc0c31db0f4f7dd2e8f748e563c4cb02e81"
+}

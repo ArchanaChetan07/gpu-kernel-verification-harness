@@ -1,0 +1,426 @@
+task_id: mut-save_and_resume-resume_fidelity-3b5e
+schema_version: '1.0'
+created_utc: '2026-08-26T18:08:39+00:00'
+seed_source:
+  seed_id: checkpointing.save_and_resume
+  module: crucible.seeds.checkpointing
+  entry: save_and_resume
+  content_sha256: 7b78bded2f14ea014b83e0737dd55f28d89f56eeeac89b39b872aa29e3c73cf6
+domain: checkpointing
+failure_tier: T6
+mutation:
+  cls: resume_fidelity
+  site: checkpointing.save_and_resume:Call@210:90#0
+  params:
+    function: save_and_resume
+    form: to_positional
+    to_dtype: torch.bfloat16
+    site: Call@210:90#0
+  description: Restore optimizer state in bf16 although it was saved in fp32, so a resumed run silently continues from a rounded moment estimate.
+baseline_code: "\"\"\"Train, checkpoint, reshard across a topology change, resume.\"\"\"\nimport torch\nCOMPUTE_DTYPE = 'float64'\nPARAM_SAVE_DTYPE = 'float64'\nSTATE_SAVE_DTYPE = 'float64'\nSTATE_LOAD_DTYPE = 'float64'\nFIELDS = ('param', 'exp_avg', 'exp_avg_sq')\n\ndef _save_dtype(field):\n    \"\"\"Write precision for one checkpoint field.\"\"\"\n    if field == 'param':\n        return getattr(torch, PARAM_SAVE_DTYPE)\n    return getattr(torch, STATE_SAVE_DTYPE)\n\ndef _load_dtype(field):\n    \"\"\"Read precision for one checkpoint field, before widening to compute.\"\"\"\n    if field == 'param':\n        return getattr(torch, COMPUTE_DTYPE)\n    return getattr(torch, STATE_LOAD_DTYPE)\n\ndef _restore_moment(flat, shape):\n    \"\"\"Widen one checkpointed optimizer moment back to compute precision.\n\n    Written as a literal dtype instead of the module constant on purpose: the\n    read precision for optimizer state is the single decision this whole seed is\n    about, so it lives in one call that can be read - and got wrong - on its own.\n    Narrow it and exp_avg_sq comes back with about eight mantissa bits missing;\n    Adam's denominator is then off by a fraction of a percent from the first\n    post-resume step onward, every later moment inherits the error through the\n    exponential average, and the loss curve never stops looking smooth.\n\n    Only the moments come through here. The weights are widened on their own\n    path so that a defect introduced at this call is a statement about optimizer\n    state and not about the checkpoint in general.\n    \"\"\"\n    return flat.to(torch.float64).reshape(shape)\n\ndef _series(vals):\n    \"\"\"Stack a list of scalar tensors into an fp64 series.\n\n    Module level rather than nested in the entry point so that an empty series -\n    which happens legitimately when a shape resumes at step 0 - cannot be\n    mistaken for a place where a dtype decision matters. Nothing is rounded here\n    that was not already rounded upstream.\n    \"\"\"\n    if not vals:\n        return torch.zeros(0, dtype=getattr(torch, COMPUTE_DTYPE))\n    return torch.stack(vals).to(getattr(torch, COMPUTE_DTYPE))\n\ndef _shard_flat(flat, n_shards):\n    \"\"\"Contiguous tensor-parallel shards of a flat tensor. The tail shard may be\n    short, and with more ranks than elements a shard is legitimately empty.\"\"\"\n    numel = int(flat.shape[0])\n    per = (numel + n_shards - 1) // n_shards\n    pieces = []\n    for r in range(n_shards):\n        lo = min(r * per, numel)\n        hi = min(lo + per, numel)\n        pieces.append(flat[lo:hi])\n    return pieces\n\ndef _stage_of(index, n_layers, n_stages):\n    \"\"\"Contiguous pipeline split. A stage may end up owning no layer at all.\"\"\"\n    return index * n_stages // n_layers\n\ndef _forward(x, w1, w2, y):\n    \"\"\"Two-layer tanh MLP with a cross-entropy head, plus its exact gradients.\"\"\"\n    z = x @ w1\n    h = torch.tanh(z)\n    logits = h @ w2\n    shifted = logits - logits.max(dim=1, keepdim=True).values\n    exp = torch.exp(shifted)\n    probs = exp / exp.sum(dim=1, keepdim=True)\n    n = x.shape[0]\n    picked = probs.gather(1, y.view(-1, 1)).clamp_min(1e-300)\n    loss = -torch.log(picked).mean()\n    onehot = torch.zeros_like(probs)\n    onehot.scatter_(1, y.view(-1, 1), 1.0)\n    dlogits = (probs - onehot) / n\n    gw2 = h.transpose(0, 1) @ dlogits\n    dh = dlogits @ w2.transpose(0, 1)\n    dz = dh * (1.0 - h * h)\n    gw1 = x.transpose(0, 1) @ dz\n    return (loss, {'w1': gw1, 'w2': gw2})\n\ndef _adam_step(params, grads, moments, step, lr, beta1, beta2, eps):\n    \"\"\"One Adam step, written out so exp_avg and exp_avg_sq are real state that\n    a checkpoint has to carry rather than something an optimizer object hides.\"\"\"\n    bias1 = 1.0 - beta1 ** step\n    bias2 = 1.0 - beta2 ** step\n    step_size = lr / bias1\n    bias2_sqrt = bias2 ** 0.5\n    for name in params:\n        g = grads[name]\n        m, v = moments[name]\n        m = m + (1.0 - beta1) * (g - m)\n        v = v * beta2 + (1.0 - beta2) * g * g\n        denom = torch.sqrt(v) / bias2_sqrt + eps\n        params[name] = params[name] - step_size * m / denom\n        moments[name] = (m, v)\n    return (params, moments)\n\ndef _save(params, moments, step, tp, pp):\n    \"\"\"Write the sharded checkpoint, each field at its own declared precision.\"\"\"\n    names = list(params.keys())\n    shards = {}\n    for i in range(len(names)):\n        name = names[i]\n        stage = _stage_of(i, len(names), pp)\n        m, v = moments[name]\n        flat = {'param': params[name].reshape(-1), 'exp_avg': m.reshape(-1), 'exp_avg_sq': v.reshape(-1)}\n        numel = int(flat['param'].shape[0])\n        shape = tuple((int(d) for d in params[name].shape))\n        split = {}\n        for field in FIELDS:\n            split[field] = _shard_flat(flat[field], tp)\n        for r in range(tp):\n            bucket = shards.setdefault((stage, r), {})\n            entry = {'numel': numel, 'shape': shape}\n            for field in FIELDS:\n                entry[field] = split[field][r].to(_save_dtype(field)).clone()\n            bucket[name] = entry\n    return {'shards': shards, 'tp': tp, 'pp': pp, 'step': step, 'names': names}\n\ndef _gather(ckpt, index, name, field):\n    \"\"\"Reassemble one flat tensor from its tensor-parallel shards, in rank\n    order, and trim the padding the split introduced.\"\"\"\n    stage = _stage_of(index, len(ckpt['names']), ckpt['pp'])\n    pieces = []\n    for r in range(ckpt['tp']):\n        pieces.append(ckpt['shards'][stage, r][name][field])\n    numel = ckpt['shards'][stage, 0][name]['numel']\n    if not pieces:\n        return torch.zeros(0, dtype=getattr(torch, COMPUTE_DTYPE))\n    return torch.cat(pieces)[:numel]\n\ndef _reshard(ckpt, tp_after, pp_after):\n    \"\"\"Rebuild the checkpoint under a new TP/PP topology.\n\n    A topology change is not a relabelling: every shard is gathered into the\n    full flat tensor and split again against the new rank count, and the\n    pipeline stage each parameter lives on is recomputed. Nothing here may\n    depend on the old topology dividing the new one.\n    \"\"\"\n    names = ckpt['names']\n    new_shards = {}\n    for i in range(len(names)):\n        name = names[i]\n        old_stage = _stage_of(i, len(names), ckpt['pp'])\n        new_stage = _stage_of(i, len(names), pp_after)\n        meta = ckpt['shards'][old_stage, 0][name]\n        gathered = {}\n        for field in FIELDS:\n            gathered[field] = _gather(ckpt, i, name, field)\n        split = {}\n        for field in FIELDS:\n            split[field] = _shard_flat(gathered[field], tp_after)\n        for r in range(tp_after):\n            bucket = new_shards.setdefault((new_stage, r), {})\n            entry = {'numel': meta['numel'], 'shape': meta['shape']}\n            for field in FIELDS:\n                entry[field] = split[field][r].clone()\n            bucket[name] = entry\n    return {'shards': new_shards, 'tp': tp_after, 'pp': pp_after, 'step': ckpt['step'], 'names': names}\n\ndef _restore(ckpt):\n    \"\"\"Read each field back at its declared precision, then widen to compute.\"\"\"\n    compute_dt = getattr(torch, COMPUTE_DTYPE)\n    names = ckpt['names']\n    params = {}\n    moments = {}\n    for i in range(len(names)):\n        name = names[i]\n        shape = ckpt['shards'][_stage_of(i, len(names), ckpt['pp']), 0][name]['shape']\n        flat = {}\n        for field in FIELDS:\n            flat[field] = _gather(ckpt, i, name, field).to(_load_dtype(field))\n        params[name] = flat['param'].to(compute_dt).reshape(shape)\n        moments[name] = (_restore_moment(flat['exp_avg'], shape), _restore_moment(flat['exp_avg_sq'], shape))\n    return (params, moments, int(ckpt['step']))\n\ndef save_and_resume(x, y, w1_0, w2_0, resume_at=6, post_steps=12, lr=0.05, beta1=0.9, beta2=0.999, eps=1e-08, tp_before=2, pp_before=1, tp_after=3, pp_after=2):\n    \"\"\"Train, checkpoint, change topology, resume, keep training.\n\n    Returns the loss curve on both sides of the resume plus the final parameters\n    and moments; the post-resume curve is what has to match an uninterrupted run.\n    \"\"\"\n    compute_dt = getattr(torch, COMPUTE_DTYPE)\n    xf = x.to(compute_dt)\n    params = {'w1': w1_0.to(compute_dt).clone(), 'w2': w2_0.to(compute_dt).clone()}\n    moments = {}\n    for name in params:\n        moments[name] = (torch.zeros_like(params[name]), torch.zeros_like(params[name]))\n    step = 0\n    pre_losses = []\n    for _ in range(int(resume_at)):\n        loss, grads = _forward(xf, params['w1'], params['w2'], y)\n        step += 1\n        params, moments = _adam_step(params, grads, moments, step, lr, beta1, beta2, eps)\n        pre_losses.append(loss)\n    ckpt = _save(params, moments, step, int(tp_before), int(pp_before))\n    ckpt = _reshard(ckpt, int(tp_after), int(pp_after))\n    params, moments, step = _restore(ckpt)\n    post_losses = []\n    for _ in range(int(post_steps)):\n        loss, grads = _forward(xf, params['w1'], params['w2'], y)\n        step += 1\n        params, moments = _adam_step(params, grads, moments, step, lr, beta1, beta2, eps)\n        post_losses.append(loss)\n    return {'pre_losses': _series(pre_losses), 'post_losses': _series(post_losses), 'w1': params['w1'].to(torch.float64), 'w2': params['w2'].to(torch.float64), 'exp_avg': torch.cat([moments['w1'][0].reshape(-1), moments['w2'][0].reshape(-1)]).to(torch.float64), 'exp_avg_sq': torch.cat([moments['w1'][1].reshape(-1), moments['w2'][1].reshape(-1)]).to(torch.float64)}\n"
+mutant_code: "\"\"\"Train, checkpoint, reshard across a topology change, resume.\"\"\"\nimport torch\nCOMPUTE_DTYPE = 'float64'\nPARAM_SAVE_DTYPE = 'float64'\nSTATE_SAVE_DTYPE = 'float64'\nSTATE_LOAD_DTYPE = 'float64'\nFIELDS = ('param', 'exp_avg', 'exp_avg_sq')\n\ndef _save_dtype(field):\n    \"\"\"Write precision for one checkpoint field.\"\"\"\n    if field == 'param':\n        return getattr(torch, PARAM_SAVE_DTYPE)\n    return getattr(torch, STATE_SAVE_DTYPE)\n\ndef _load_dtype(field):\n    \"\"\"Read precision for one checkpoint field, before widening to compute.\"\"\"\n    if field == 'param':\n        return getattr(torch, COMPUTE_DTYPE)\n    return getattr(torch, STATE_LOAD_DTYPE)\n\ndef _restore_moment(flat, shape):\n    \"\"\"Widen one checkpointed optimizer moment back to compute precision.\n\n    Written as a literal dtype instead of the module constant on purpose: the\n    read precision for optimizer state is the single decision this whole seed is\n    about, so it lives in one call that can be read - and got wrong - on its own.\n    Narrow it and exp_avg_sq comes back with about eight mantissa bits missing;\n    Adam's denominator is then off by a fraction of a percent from the first\n    post-resume step onward, every later moment inherits the error through the\n    exponential average, and the loss curve never stops looking smooth.\n\n    Only the moments come through here. The weights are widened on their own\n    path so that a defect introduced at this call is a statement about optimizer\n    state and not about the checkpoint in general.\n    \"\"\"\n    return flat.to(torch.float64).reshape(shape)\n\ndef _series(vals):\n    \"\"\"Stack a list of scalar tensors into an fp64 series.\n\n    Module level rather than nested in the entry point so that an empty series -\n    which happens legitimately when a shape resumes at step 0 - cannot be\n    mistaken for a place where a dtype decision matters. Nothing is rounded here\n    that was not already rounded upstream.\n    \"\"\"\n    if not vals:\n        return torch.zeros(0, dtype=getattr(torch, COMPUTE_DTYPE))\n    return torch.stack(vals).to(getattr(torch, COMPUTE_DTYPE))\n\ndef _shard_flat(flat, n_shards):\n    \"\"\"Contiguous tensor-parallel shards of a flat tensor. The tail shard may be\n    short, and with more ranks than elements a shard is legitimately empty.\"\"\"\n    numel = int(flat.shape[0])\n    per = (numel + n_shards - 1) // n_shards\n    pieces = []\n    for r in range(n_shards):\n        lo = min(r * per, numel)\n        hi = min(lo + per, numel)\n        pieces.append(flat[lo:hi])\n    return pieces\n\ndef _stage_of(index, n_layers, n_stages):\n    \"\"\"Contiguous pipeline split. A stage may end up owning no layer at all.\"\"\"\n    return index * n_stages // n_layers\n\ndef _forward(x, w1, w2, y):\n    \"\"\"Two-layer tanh MLP with a cross-entropy head, plus its exact gradients.\"\"\"\n    z = x @ w1\n    h = torch.tanh(z)\n    logits = h @ w2\n    shifted = logits - logits.max(dim=1, keepdim=True).values\n    exp = torch.exp(shifted)\n    probs = exp / exp.sum(dim=1, keepdim=True)\n    n = x.shape[0]\n    picked = probs.gather(1, y.view(-1, 1)).clamp_min(1e-300)\n    loss = -torch.log(picked).mean()\n    onehot = torch.zeros_like(probs)\n    onehot.scatter_(1, y.view(-1, 1), 1.0)\n    dlogits = (probs - onehot) / n\n    gw2 = h.transpose(0, 1) @ dlogits\n    dh = dlogits @ w2.transpose(0, 1)\n    dz = dh * (1.0 - h * h)\n    gw1 = x.transpose(0, 1) @ dz\n    return (loss, {'w1': gw1, 'w2': gw2})\n\ndef _adam_step(params, grads, moments, step, lr, beta1, beta2, eps):\n    \"\"\"One Adam step, written out so exp_avg and exp_avg_sq are real state that\n    a checkpoint has to carry rather than something an optimizer object hides.\"\"\"\n    bias1 = 1.0 - beta1 ** step\n    bias2 = 1.0 - beta2 ** step\n    step_size = lr / bias1\n    bias2_sqrt = bias2 ** 0.5\n    for name in params:\n        g = grads[name]\n        m, v = moments[name]\n        m = m + (1.0 - beta1) * (g - m)\n        v = v * beta2 + (1.0 - beta2) * g * g\n        denom = torch.sqrt(v) / bias2_sqrt + eps\n        params[name] = params[name] - step_size * m / denom\n        moments[name] = (m, v)\n    return (params, moments)\n\ndef _save(params, moments, step, tp, pp):\n    \"\"\"Write the sharded checkpoint, each field at its own declared precision.\"\"\"\n    names = list(params.keys())\n    shards = {}\n    for i in range(len(names)):\n        name = names[i]\n        stage = _stage_of(i, len(names), pp)\n        m, v = moments[name]\n        flat = {'param': params[name].reshape(-1), 'exp_avg': m.reshape(-1), 'exp_avg_sq': v.reshape(-1)}\n        numel = int(flat['param'].shape[0])\n        shape = tuple((int(d) for d in params[name].shape))\n        split = {}\n        for field in FIELDS:\n            split[field] = _shard_flat(flat[field], tp)\n        for r in range(tp):\n            bucket = shards.setdefault((stage, r), {})\n            entry = {'numel': numel, 'shape': shape}\n            for field in FIELDS:\n                entry[field] = split[field][r].to(_save_dtype(field)).clone()\n            bucket[name] = entry\n    return {'shards': shards, 'tp': tp, 'pp': pp, 'step': step, 'names': names}\n\ndef _gather(ckpt, index, name, field):\n    \"\"\"Reassemble one flat tensor from its tensor-parallel shards, in rank\n    order, and trim the padding the split introduced.\"\"\"\n    stage = _stage_of(index, len(ckpt['names']), ckpt['pp'])\n    pieces = []\n    for r in range(ckpt['tp']):\n        pieces.append(ckpt['shards'][stage, r][name][field])\n    numel = ckpt['shards'][stage, 0][name]['numel']\n    if not pieces:\n        return torch.zeros(0, dtype=getattr(torch, COMPUTE_DTYPE))\n    return torch.cat(pieces)[:numel]\n\ndef _reshard(ckpt, tp_after, pp_after):\n    \"\"\"Rebuild the checkpoint under a new TP/PP topology.\n\n    A topology change is not a relabelling: every shard is gathered into the\n    full flat tensor and split again against the new rank count, and the\n    pipeline stage each parameter lives on is recomputed. Nothing here may\n    depend on the old topology dividing the new one.\n    \"\"\"\n    names = ckpt['names']\n    new_shards = {}\n    for i in range(len(names)):\n        name = names[i]\n        old_stage = _stage_of(i, len(names), ckpt['pp'])\n        new_stage = _stage_of(i, len(names), pp_after)\n        meta = ckpt['shards'][old_stage, 0][name]\n        gathered = {}\n        for field in FIELDS:\n            gathered[field] = _gather(ckpt, i, name, field)\n        split = {}\n        for field in FIELDS:\n            split[field] = _shard_flat(gathered[field], tp_after)\n        for r in range(tp_after):\n            bucket = new_shards.setdefault((new_stage, r), {})\n            entry = {'numel': meta['numel'], 'shape': meta['shape']}\n            for field in FIELDS:\n                entry[field] = split[field][r].clone()\n            bucket[name] = entry\n    return {'shards': new_shards, 'tp': tp_after, 'pp': pp_after, 'step': ckpt['step'], 'names': names}\n\ndef _restore(ckpt):\n    \"\"\"Read each field back at its declared precision, then widen to compute.\"\"\"\n    compute_dt = getattr(torch, COMPUTE_DTYPE)\n    names = ckpt['names']\n    params = {}\n    moments = {}\n    for i in range(len(names)):\n        name = names[i]\n        shape = ckpt['shards'][_stage_of(i, len(names), ckpt['pp']), 0][name]['shape']\n        flat = {}\n        for field in FIELDS:\n            flat[field] = _gather(ckpt, i, name, field).to(_load_dtype(field))\n        params[name] = flat['param'].to(compute_dt).reshape(shape)\n        moments[name] = (_restore_moment(flat['exp_avg'], shape), _restore_moment(flat['exp_avg_sq'], shape))\n    return (params, moments, int(ckpt['step']))\n\ndef save_and_resume(x, y, w1_0, w2_0, resume_at=6, post_steps=12, lr=0.05, beta1=0.9, beta2=0.999, eps=1e-08, tp_before=2, pp_before=1, tp_after=3, pp_after=2):\n    \"\"\"Train, checkpoint, change topology, resume, keep training.\n\n    Returns the loss curve on both sides of the resume plus the final parameters\n    and moments; the post-resume curve is what has to match an uninterrupted run.\n    \"\"\"\n    compute_dt = getattr(torch, COMPUTE_DTYPE)\n    xf = x.to(compute_dt)\n    params = {'w1': w1_0.to(compute_dt).clone(), 'w2': w2_0.to(compute_dt).clone()}\n    moments = {}\n    for name in params:\n        moments[name] = (torch.zeros_like(params[name]), torch.zeros_like(params[name]))\n    step = 0\n    pre_losses = []\n    for _ in range(int(resume_at)):\n        loss, grads = _forward(xf, params['w1'], params['w2'], y)\n        step += 1\n        params, moments = _adam_step(params, grads, moments, step, lr, beta1, beta2, eps)\n        pre_losses.append(loss)\n    ckpt = _save(params, moments, step, int(tp_before), int(pp_before))\n    ckpt = _reshard(ckpt, int(tp_after), int(pp_after))\n    params, moments, step = _restore(ckpt)\n    post_losses = []\n    for _ in range(int(post_steps)):\n        loss, grads = _forward(xf, params['w1'], params['w2'], y)\n        step += 1\n        params, moments = _adam_step(params, grads, moments, step, lr, beta1, beta2, eps)\n        post_losses.append(loss)\n    return {'pre_losses': _series(pre_losses), 'post_losses': _series(post_losses), 'w1': params['w1'].to(torch.bfloat16), 'w2': params['w2'].to(torch.float64), 'exp_avg': torch.cat([moments['w1'][0].reshape(-1), moments['w2'][0].reshape(-1)]).to(torch.float64), 'exp_avg_sq': torch.cat([moments['w1'][1].reshape(-1), moments['w2'][1].reshape(-1)]).to(torch.float64)}\n"
+ground_truth_diff: "--- a/save_and_resume.py (mutant)\n+++ b/save_and_resume.py (baseline)\n@@ -207,4 +207,4 @@\n         step += 1\n         params, moments = _adam_step(params, grads, moments, step, lr, beta1, beta2, eps)\n         post_losses.append(loss)\n-    return {'pre_losses': _series(pre_losses), 'post_losses': _series(post_losses), 'w1': params['w1'].to(torch.bfloat16), 'w2': params['w2'].to(torch.float64), 'exp_avg': torch.cat([moments['w1'][0].reshape(-1), moments['w2'][0].reshape(-1)]).to(torch.float64), 'exp_avg_sq': torch.cat([moments['w1'][1].reshape(-1), moments['w2'][1].reshape(-1)]).to(torch.float64)}\n+    return {'pre_losses': _series(pre_losses), 'post_losses': _series(post_losses), 'w1': params['w1'].to(torch.float64), 'w2': params['w2'].to(torch.float64), 'exp_avg': torch.cat([moments['w1'][0].reshape(-1), moments['w2'][0].reshape(-1)]).to(torch.float64), 'exp_avg_sq': torch.cat([moments['w1'][1].reshape(-1), moments['w2'][1].reshape(-1)]).to(torch.float64)}\n"
+witness:
+  shape:
+    name: tp_more_ranks_than_params
+    kwargs:
+      n: 24
+      d: 2
+      h: 2
+      k: 2
+      resume_at: 5
+      post_steps: 20
+      tp_before: 9
+      pp_before: 1
+      tp_after: 7
+      pp_after: 2
+  max_abs_err: 0.0016634043665487708
+  max_rel_err: 0.003167780426040982
+  tolerance: 5.9604644775390625e-06
+  baseline_checksum: 897b8c8a636fc9a0368ae241d69bbbe95aeed9614d87bbcc5fe49429dd491c1a
+  mutant_checksum: 22f5d93978f340f508fa5774e8bf32ec87299c1f54bb9dbf238c838c2097c523
+  kind: numeric
+  detail: 'output ''w1'': 4/4 elements outside the budget (max_abs=0.0016634, max_rel=0.00316778, rtol=5.96e-06) | budget: fp32 eps=5.96e-08, K=625, stochastic growth sqrt(K)=25.00, safety=4 -> rel=5.96e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=5.96e-06 [crucible.oracles.tolerance.derive]'
+detect_shapes:
+- name: tp_more_ranks_than_params
+  kwargs:
+    n: 24
+    d: 2
+    h: 2
+    k: 2
+    resume_at: 5
+    post_steps: 20
+    tp_before: 9
+    pp_before: 1
+    tp_after: 7
+    pp_after: 2
+- name: resume_at_step0_decoy
+  kwargs:
+    n: 24
+    d: 6
+    h: 5
+    k: 3
+    resume_at: 0
+    post_steps: 20
+    tp_before: 2
+    pp_before: 1
+    tp_after: 3
+    pp_after: 2
+- name: resume_at_step1
+  kwargs:
+    n: 24
+    d: 6
+    h: 5
+    k: 3
+    resume_at: 1
+    post_steps: 20
+    tp_before: 2
+    pp_before: 1
+    tp_after: 3
+    pp_after: 2
+- name: pp3_empty_stage
+  kwargs:
+    n: 24
+    d: 6
+    h: 5
+    k: 3
+    resume_at: 6
+    post_steps: 20
+    tp_before: 2
+    pp_before: 1
+    tp_after: 2
+    pp_after: 3
+- name: topology_unchanged_decoy
+  kwargs:
+    n: 24
+    d: 6
+    h: 5
+    k: 3
+    resume_at: 6
+    post_steps: 20
+    tp_before: 1
+    pp_before: 1
+    tp_after: 1
+    pp_after: 1
+- name: tp2to3_pp1to2
+  kwargs:
+    n: 24
+    d: 6
+    h: 5
+    k: 3
+    resume_at: 6
+    post_steps: 20
+    tp_before: 2
+    pp_before: 1
+    tp_after: 3
+    pp_after: 2
+- name: tp4to1_pp2to1
+  kwargs:
+    n: 24
+    d: 6
+    h: 5
+    k: 3
+    resume_at: 6
+    post_steps: 20
+    tp_before: 4
+    pp_before: 2
+    tp_after: 1
+    pp_after: 1
+- name: long_tail_after_resume
+  kwargs:
+    n: 24
+    d: 6
+    h: 5
+    k: 3
+    resume_at: 4
+    post_steps: 40
+    tp_before: 3
+    pp_before: 2
+    tp_after: 2
+    pp_after: 1
+decoy_shapes: []
+prompt: "# Debugging task: `save_and_resume`\n\nThe `save_and_resume` implementation below is a checkpointing routine that is believed to be\ncorrect. It is not. On at least one input it silently disagrees with an\nindependent reference implementation, and the disagreement is not visible on the\nshapes it was checked on.\n\n## Implementation under test\n\n```python\n\"\"\"Train, checkpoint, reshard across a topology change, resume.\"\"\"\nimport torch\nCOMPUTE_DTYPE = 'float64'\nPARAM_SAVE_DTYPE = 'float64'\nSTATE_SAVE_DTYPE = 'float64'\nSTATE_LOAD_DTYPE = 'float64'\nFIELDS = ('param', 'exp_avg', 'exp_avg_sq')\n\ndef _save_dtype(field):\n    \"\"\"Write precision for one checkpoint field.\"\"\"\n    if field == 'param':\n        return getattr(torch, PARAM_SAVE_DTYPE)\n    return getattr(torch, STATE_SAVE_DTYPE)\n\ndef _load_dtype(field):\n    \"\"\"Read precision for one checkpoint field, before widening to compute.\"\"\"\n    if field == 'param':\n        return getattr(torch, COMPUTE_DTYPE)\n    return getattr(torch, STATE_LOAD_DTYPE)\n\ndef _restore_moment(flat, shape):\n    \"\"\"Widen one checkpointed optimizer moment back to compute precision.\n\n    Written as a literal dtype instead of the module constant on purpose: the\n    read precision for optimizer state is the single decision this whole seed is\n    about, so it lives in one call that can be read - and got wrong - on its own.\n    Narrow it and exp_avg_sq comes back with about eight mantissa bits missing;\n    Adam's denominator is then off by a fraction of a percent from the first\n    post-resume step onward, every later moment inherits the error through the\n    exponential average, and the loss curve never stops looking smooth.\n\n    Only the moments come through here. The weights are widened on their own\n    path so that a defect introduced at this call is a statement about optimizer\n    state and not about the checkpoint in general.\n    \"\"\"\n    return flat.to(torch.float64).reshape(shape)\n\ndef _series(vals):\n    \"\"\"Stack a list of scalar tensors into an fp64 series.\n\n    Module level rather than nested in the entry point so that an empty series -\n    which happens legitimately when a shape resumes at step 0 - cannot be\n    mistaken for a place where a dtype decision matters. Nothing is rounded here\n    that was not already rounded upstream.\n    \"\"\"\n    if not vals:\n        return torch.zeros(0, dtype=getattr(torch, COMPUTE_DTYPE))\n    return torch.stack(vals).to(getattr(torch, COMPUTE_DTYPE))\n\ndef _shard_flat(flat, n_shards):\n    \"\"\"Contiguous tensor-parallel shards of a flat tensor. The tail shard may be\n    short, and with more ranks than elements a shard is legitimately empty.\"\"\"\n    numel = int(flat.shape[0])\n    per = (numel + n_shards - 1) // n_shards\n    pieces = []\n    for r in range(n_shards):\n        lo = min(r * per, numel)\n        hi = min(lo + per, numel)\n        pieces.append(flat[lo:hi])\n    return pieces\n\ndef _stage_of(index, n_layers, n_stages):\n    \"\"\"Contiguous pipeline split. A stage may end up owning no layer at all.\"\"\"\n    return index * n_stages // n_layers\n\ndef _forward(x, w1, w2, y):\n    \"\"\"Two-layer tanh MLP with a cross-entropy head, plus its exact gradients.\"\"\"\n    z = x @ w1\n    h = torch.tanh(z)\n    logits = h @ w2\n    shifted = logits - logits.max(dim=1, keepdim=True).values\n    exp = torch.exp(shifted)\n    probs = exp / exp.sum(dim=1, keepdim=True)\n    n = x.shape[0]\n    picked = probs.gather(1, y.view(-1, 1)).clamp_min(1e-300)\n    loss = -torch.log(picked).mean()\n    onehot = torch.zeros_like(probs)\n    onehot.scatter_(1, y.view(-1, 1), 1.0)\n    dlogits = (probs - onehot) / n\n    gw2 = h.transpose(0, 1) @ dlogits\n    dh = dlogits @ w2.transpose(0, 1)\n    dz = dh * (1.0 - h * h)\n    gw1 = x.transpose(0, 1) @ dz\n    return (loss, {'w1': gw1, 'w2': gw2})\n\ndef _adam_step(params, grads, moments, step, lr, beta1, beta2, eps):\n    \"\"\"One Adam step, written out so exp_avg and exp_avg_sq are real state that\n    a checkpoint has to carry rather than something an optimizer object hides.\"\"\"\n    bias1 = 1.0 - beta1 ** step\n    bias2 = 1.0 - beta2 ** step\n    step_size = lr / bias1\n    bias2_sqrt = bias2 ** 0.5\n    for name in params:\n        g = grads[name]\n        m, v = moments[name]\n        m = m + (1.0 - beta1) * (g - m)\n        v = v * beta2 + (1.0 - beta2) * g * g\n        denom = torch.sqrt(v) / bias2_sqrt + eps\n        params[name] = params[name] - step_size * m / denom\n        moments[name] = (m, v)\n    return (params, moments)\n\ndef _save(params, moments, step, tp, pp):\n    \"\"\"Write the sharded checkpoint, each field at its own declared precision.\"\"\"\n    names = list(params.keys())\n    shards = {}\n    for i in range(len(names)):\n        name = names[i]\n        stage = _stage_of(i, len(names), pp)\n        m, v = moments[name]\n        flat = {'param': params[name].reshape(-1), 'exp_avg': m.reshape(-1), 'exp_avg_sq': v.reshape(-1)}\n        numel = int(flat['param'].shape[0])\n        shape = tuple((int(d) for d in params[name].shape))\n        split = {}\n        for field in FIELDS:\n            split[field] = _shard_flat(flat[field], tp)\n        for r in range(tp):\n            bucket = shards.setdefault((stage, r), {})\n            entry = {'numel': numel, 'shape': shape}\n            for field in FIELDS:\n                entry[field] = split[field][r].to(_save_dtype(field)).clone()\n            bucket[name] = entry\n    return {'shards': shards, 'tp': tp, 'pp': pp, 'step': step, 'names': names}\n\ndef _gather(ckpt, index, name, field):\n    \"\"\"Reassemble one flat tensor from its tensor-parallel shards, in rank\n    order, and trim the padding the split introduced.\"\"\"\n    stage = _stage_of(index, len(ckpt['names']), ckpt['pp'])\n    pieces = []\n    for r in range(ckpt['tp']):\n        pieces.append(ckpt['shards'][stage, r][name][field])\n    numel = ckpt['shards'][stage, 0][name]['numel']\n    if not pieces:\n        return torch.zeros(0, dtype=getattr(torch, COMPUTE_DTYPE))\n    return torch.cat(pieces)[:numel]\n\ndef _reshard(ckpt, tp_after, pp_after):\n    \"\"\"Rebuild the checkpoint under a new TP/PP topology.\n\n    A topology change is not a relabelling: every shard is gathered into the\n    full flat tensor and split again against the new rank count, and the\n    pipeline stage each parameter lives on is recomputed. Nothing here may\n    depend on the old topology dividing the new one.\n    \"\"\"\n    names = ckpt['names']\n    new_shards = {}\n    for i in range(len(names)):\n        name = names[i]\n        old_stage = _stage_of(i, len(names), ckpt['pp'])\n        new_stage = _stage_of(i, len(names), pp_after)\n        meta = ckpt['shards'][old_stage, 0][name]\n        gathered = {}\n        for field in FIELDS:\n            gathered[field] = _gather(ckpt, i, name, field)\n        split = {}\n        for field in FIELDS:\n            split[field] = _shard_flat(gathered[field], tp_after)\n        for r in range(tp_after):\n            bucket = new_shards.setdefault((new_stage, r), {})\n            entry = {'numel': meta['numel'], 'shape': meta['shape']}\n            for field in FIELDS:\n                entry[field] = split[field][r].clone()\n            bucket[name] = entry\n    return {'shards': new_shards, 'tp': tp_after, 'pp': pp_after, 'step': ckpt['step'], 'names': names}\n\ndef _restore(ckpt):\n    \"\"\"Read each field back at its declared precision, then widen to compute.\"\"\"\n    compute_dt = getattr(torch, COMPUTE_DTYPE)\n    names = ckpt['names']\n    params = {}\n    moments = {}\n    for i in range(len(names)):\n        name = names[i]\n        shape = ckpt['shards'][_stage_of(i, len(names), ckpt['pp']), 0][name]['shape']\n        flat = {}\n        for field in FIELDS:\n            flat[field] = _gather(ckpt, i, name, field).to(_load_dtype(field))\n        params[name] = flat['param'].to(compute_dt).reshape(shape)\n        moments[name] = (_restore_moment(flat['exp_avg'], shape), _restore_moment(flat['exp_avg_sq'], shape))\n    return (params, moments, int(ckpt['step']))\n\ndef save_and_resume(x, y, w1_0, w2_0, resume_at=6, post_steps=12, lr=0.05, beta1=0.9, beta2=0.999, eps=1e-08, tp_before=2, pp_before=1, tp_after=3, pp_after=2):\n    \"\"\"Train, checkpoint, change topology, resume, keep training.\n\n    Returns the loss curve on both sides of the resume plus the final parameters\n    and moments; the post-resume curve is what has to match an uninterrupted run.\n    \"\"\"\n    compute_dt = getattr(torch, COMPUTE_DTYPE)\n    xf = x.to(compute_dt)\n    params = {'w1': w1_0.to(compute_dt).clone(), 'w2': w2_0.to(compute_dt).clone()}\n    moments = {}\n    for name in params:\n        moments[name] = (torch.zeros_like(params[name]), torch.zeros_like(params[name]))\n    step = 0\n    pre_losses = []\n    for _ in range(int(resume_at)):\n        loss, grads = _forward(xf, params['w1'], params['w2'], y)\n        step += 1\n        params, moments = _adam_step(params, grads, moments, step, lr, beta1, beta2, eps)\n        pre_losses.append(loss)\n    ckpt = _save(params, moments, step, int(tp_before), int(pp_before))\n    ckpt = _reshard(ckpt, int(tp_after), int(pp_after))\n    params, moments, step = _restore(ckpt)\n    post_losses = []\n    for _ in range(int(post_steps)):\n        loss, grads = _forward(xf, params['w1'], params['w2'], y)\n        step += 1\n        params, moments = _adam_step(params, grads, moments, step, lr, beta1, beta2, eps)\n        post_losses.append(loss)\n    return {'pre_losses': _series(pre_losses), 'post_losses': _series(post_losses), 'w1': params['w1'].to(torch.bfloat16), 'w2': params['w2'].to(torch.float64), 'exp_avg': torch.cat([moments['w1'][0].reshape(-1), moments['w2'][0].reshape(-1)]).to(torch.float64), 'exp_avg_sq': torch.cat([moments['w1'][1].reshape(-1), moments['w2'][1].reshape(-1)]).to(torch.float64)}\n```\n\n## Shapes it was checked on\n\nThe recorded sweep produced no agreeing shape:\n\n- (no shape in the recorded sweep agreed with the reference)\n\n## What to produce\n\n1. **Root cause.** Which expression is wrong, and what it does wrong.\n2. **Trigger class.** What property an input must have for the defect to show,\n   and why every shape above lacks that property.\n3. **Fix.** A corrected `save_and_resume` with the same name and the same signature.\n\n## Rules\n\n- Pure PyTorch. Do not import or call: `torch.optim`, `torch.autograd.grad`, `torch.autograd.backward`, `torch.nn.functional.cross_entropy`, `torch.nn.CrossEntropyLoss`, `torch.save`, `torch.load`, `pickle`, `crucible.seeds.checkpointing`.\n- Do not special-case shapes, memoise inputs, or return a precomputed answer.\n- Your submission is executed on withheld shapes chosen specifically to expose\n  this defect, with freshly seeded inputs. Reproducing the behaviour on the\n  shapes above is necessary and not sufficient.\n"
+oracles:
+- O1
+- O3
+- O5
+rubric:
+  criteria:
+  - id: numerics_within_budget
+    weight: 4.0
+    anchors:
+      '0': the fixed implementation still exceeds the derived error budget
+      '3': within the budget on every graded shape
+      '5': within the budget with margin, on the witness shape included
+    auto_probe: oracle.O1.max_rel_err
+    probe_thresholds:
+    - - 5.9604644775390625e-06
+      - 5
+    - - 0.0005960464477539062
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  - id: witness_shape_fixed
+    weight: 3.0
+    anchors:
+      '0': the withheld shape still reproduces the defect
+      '3': the withheld shape is fixed
+      '5': the withheld shape is fixed and the absolute error is at reference level
+    auto_probe: oracle.O1.max_abs_err
+    probe_thresholds:
+    - - 1.6634043665487708e-06
+      - 5
+    - - 0.0001663404366548771
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  - id: root_cause_explanation
+    weight: 2.0
+    anchors:
+      '0': no mechanism given, or the wrong expression blamed
+      '3': names the responsible expression
+      '5': names the expression and derives why the given shapes hide it
+    auto_probe: null
+    probe_thresholds: []
+    machine_probed: false
+  - id: fix_minimality
+    weight: 1.0
+    anchors:
+      '0': rewrites unrelated code or changes the interface
+      '3': a local fix with some incidental change
+      '5': the minimal edit that removes the defect
+    auto_probe: null
+    probe_thresholds: []
+    machine_probed: false
+  - id: multi_rank_agreement
+    weight: 3.0
+    anchors:
+      '0': the N-rank loss curve still diverges from the 1-rank curve
+      '3': the curves agree within the measured noise floor
+      '5': the curves agree well inside the measured noise floor
+    auto_probe: oracle.O5.max_loss_delta
+    probe_thresholds:
+    - - 1.0e-06
+      - 5
+    - - 0.001
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  version: '1.0'
+calibration: null
+provenance:
+  generator: crucible.mutate.engine
+  generator_version: '1.0'
+  host: Archana-PC
+  python: 3.11.5
+  utc: '2026-08-26T18:08:39+00:00'
+  device: cuda
+  capabilities: torch 2.6.0+cu124 on Windows-10-10.0.26200-SP0; NVIDIA T1000 8GB; cuda=True triton=False ncu=yes gloo=True nccl=False inductor(cpu=False,cuda=False)
+  seed_module: crucible.seeds.checkpointing
+  seed_tiers:
+  - T4
+  - T5
+  - T6
+  class_tier: T6
+  site:
+    lineno: 210
+    col_offset: 90
+    node_type: Call
+    ordinal: 0
+    label: params['w1'].to(torch.float64)
+    meta:
+      function: save_and_resume
+      form: to_positional
+      to_dtype: torch.bfloat16
+  seed_source_sha256: 7b78bded2f14ea014b83e0737dd55f28d89f56eeeac89b39b872aa29e3c73cf6
+  canonical_baseline_sha256: 9a2a054ef25bffcf92974f0eefcc5c596ca5c42e60dd5577f7af5d2e37ffdb18
+  mutant_sha256: 3b5eeb86687a52ed350b40f849940621b5357c55ded508f4d5d0106ffc090395
+  shapes_evaluated: 8
+  shape_outcomes:
+  - shape: tp_more_ranks_than_params
+    kwargs:
+      n: 24
+      d: 2
+      h: 2
+      k: 2
+      resume_at: 5
+      post_steps: 20
+      tp_before: 9
+      pp_before: 1
+      tp_after: 7
+      pp_after: 2
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 0.0016634043665487708
+    max_rel_err: 0.003167780426040982
+    tolerance: 5.9604644775390625e-06
+    detail: 'output ''w1'': 4/4 elements outside the budget (max_abs=0.0016634, max_rel=0.00316778, rtol=5.96e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.9574
+  - shape: resume_at_step0_decoy
+    kwargs:
+      n: 24
+      d: 6
+      h: 5
+      k: 3
+      resume_at: 0
+      post_steps: 20
+      tp_before: 2
+      pp_before: 1
+      tp_after: 3
+      pp_after: 2
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 0.003846462744556467
+    max_rel_err: 0.0034513677202986843
+    tolerance: 5.331201499700045e-06
+    detail: 'output ''w1'': 29/30 elements outside the budget (max_abs=0.00384646, max_rel=0.00345137, rtol=5.33e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.9505
+  - shape: resume_at_step1
+    kwargs:
+      n: 24
+      d: 6
+      h: 5
+      k: 3
+      resume_at: 1
+      post_steps: 20
+      tp_before: 2
+      pp_before: 1
+      tp_after: 3
+      pp_after: 2
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 0.003631180907011533
+    max_rel_err: 0.0032644386466332597
+    tolerance: 5.462855929083633e-06
+    detail: 'output ''w1'': 28/30 elements outside the budget (max_abs=0.00363118, max_rel=0.00326444, rtol=5.46e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.9488
+  - shape: pp3_empty_stage
+    kwargs:
+      n: 24
+      d: 6
+      h: 5
+      k: 3
+      resume_at: 6
+      post_steps: 20
+      tp_before: 2
+      pp_before: 1
+      tp_after: 2
+      pp_after: 3
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 0.007754463640986753
+    max_rel_err: 0.0035575086686217487
+    tolerance: 6.078504936209661e-06
+    detail: 'output ''w1'': 30/30 elements outside the budget (max_abs=0.00775446, max_rel=0.00355751, rtol=6.08e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.9285
+  - shape: topology_unchanged_decoy
+    kwargs:
+      n: 24
+      d: 6
+      h: 5
+      k: 3
+      resume_at: 6
+      post_steps: 20
+      tp_before: 1
+      pp_before: 1
+      tp_after: 1
+      pp_after: 1
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 0.007754463640986753
+    max_rel_err: 0.0035575086686217487
+    tolerance: 6.078504936209661e-06
+    detail: 'output ''w1'': 30/30 elements outside the budget (max_abs=0.00775446, max_rel=0.00355751, rtol=6.08e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.9363
+  - shape: tp2to3_pp1to2
+    kwargs:
+      n: 24
+      d: 6
+      h: 5
+      k: 3
+      resume_at: 6
+      post_steps: 20
+      tp_before: 2
+      pp_before: 1
+      tp_after: 3
+      pp_after: 2
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 0.007754463640986753
+    max_rel_err: 0.0035575086686217487
+    tolerance: 6.078504936209661e-06
+    detail: 'output ''w1'': 30/30 elements outside the budget (max_abs=0.00775446, max_rel=0.00355751, rtol=6.08e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.9701
+  - shape: tp4to1_pp2to1
+    kwargs:
+      n: 24
+      d: 6
+      h: 5
+      k: 3
+      resume_at: 6
+      post_steps: 20
+      tp_before: 4
+      pp_before: 2
+      tp_after: 1
+      pp_after: 1
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 0.007754463640986753
+    max_rel_err: 0.0035575086686217487
+    tolerance: 6.078504936209661e-06
+    detail: 'output ''w1'': 30/30 elements outside the budget (max_abs=0.00775446, max_rel=0.00355751, rtol=6.08e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.9189
+  - shape: long_tail_after_resume
+    kwargs:
+      n: 24
+      d: 6
+      h: 5
+      k: 3
+      resume_at: 4
+      post_steps: 40
+      tp_before: 3
+      pp_before: 2
+      tp_after: 2
+      pp_after: 1
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 0.007511238686393806
+    max_rel_err: 0.0033550825498543653
+    tolerance: 7.907449699295521e-06
+    detail: 'output ''w1'': 30/30 elements outside the budget (max_abs=0.00751124, max_rel=0.00335508, rtol=7.91e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.9083
+  tolerance:
+    rel: 5.9604644775390625e-06
+    abs: 5.9604644775390625e-06
+    dtype: fp32
+    accum_depth: 625
+    mode: stochastic
+    formula: 'fp32 eps=5.96e-08, K=625, stochastic growth sqrt(K)=25.00, safety=4 -> rel=5.96e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=5.96e-06'
+    source: crucible.oracles.tolerance.derive

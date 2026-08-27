@@ -628,3 +628,44 @@ def compare(a: Any, b: Any, tol: Tolerance) -> CompareResult:
         detail="; ".join(details),
         tolerance=tol,
     )
+
+
+def align_for_compare(got: Any, want: Any) -> tuple[Any, Any]:
+    """Put both sides on the host as torch tensors, preserving structure.
+
+    A candidate's outputs come back from the sandbox on the host while the
+    reference was computed on the active device, so any comparator doing tensor
+    arithmetic raises "expected all tensors to be on the same device". Both O1
+    and O3 hand user-supplied comparators these values, so this lives here
+    rather than in either oracle: two copies of the alignment rule is how the
+    two oracles came to disagree about correctness in the first place.
+
+    Walks dicts and sequences so a seed returning several named outputs behaves
+    like one returning a single tensor. Non-tensor values pass through.
+    """
+    from collections.abc import Mapping
+
+    try:
+        import torch
+    except ImportError:
+        return got, want
+
+    def host(value: Any) -> Any:
+        if isinstance(value, Mapping):
+            return {k: host(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple)):
+            return type(value)(host(v) for v in value)
+        if isinstance(value, torch.Tensor):
+            return value.detach().to("cpu")
+        try:
+            arr = to_numpy(value)
+        except Exception:  # noqa: BLE001 - a non-array value is passed through
+            return value
+        if arr is None:
+            return value
+        try:
+            return torch.as_tensor(arr)
+        except (TypeError, RuntimeError, ValueError):
+            return value
+
+    return host(got), host(want)

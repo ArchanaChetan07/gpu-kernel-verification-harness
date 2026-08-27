@@ -55,6 +55,7 @@ from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from ..schema import OracleResult, Task
 from .base import OracleContext, register_oracle
+from .tolerance import align_for_compare
 
 logger = logging.getLogger(__name__)
 
@@ -422,16 +423,48 @@ class _StaticAnalyzer(ast.NodeVisitor):
         return module if module else "<dynamic module name>"
 
 
-def analyze_source(source: str, denylist: Sequence[str] = ()) -> tuple[list[DenylistHit], dict[str, str]]:
+def analyze_source(
+    source: str,
+    denylist: Sequence[str] = (),
+    baseline_source: str | None = None,
+) -> tuple[list[DenylistHit], dict[str, str]]:
     """Static analysis of one candidate. Raises ``SyntaxError`` if it will not parse.
 
     Returns (hits, alias map). Exposed so the red-team suite can assert on the
     exact node that was flagged.
+
+    When ``baseline_source`` is given, any finding the KNOWN-GOOD baseline also
+    produces is dropped. Dynamic access is only suspicious because it can hide a
+    banned symbol; a construct the reference implementation itself uses hides
+    nothing, and flagging it rejects the honest solution. The seeds resolve a
+    dtype with ``getattr(torch, accum_dtype)``, which is idiomatic and was
+    failing four correct reference solutions. Using the baseline as the control
+    keeps the check strict -- a candidate that introduces dynamic access the
+    baseline does not have still fires -- while removing a whole class of false
+    positive. Denylist hits are never suppressed this way; only the
+    "unknowable name" kinds are.
     """
     tree = ast.parse(source)
     analyzer = _StaticAnalyzer(source, denylist)
     analyzer.collect_aliases(tree)
     analyzer.visit(tree)
+
+    baseline_marks: set[tuple[str, str]] = set()
+    if baseline_source:
+        try:
+            btree = ast.parse(baseline_source)
+        except SyntaxError:
+            btree = None
+        if btree is not None:
+            banalyzer = _StaticAnalyzer(baseline_source, denylist)
+            banalyzer.collect_aliases(btree)
+            banalyzer.visit(btree)
+            baseline_marks = {
+                (h.kind, h.symbol)
+                for h in banalyzer.hits
+                if h.kind in ("dynamic_attribute", "dynamic_import")
+            }
+
     seen: set[tuple[str, str, int, int]] = set()
     unique: list[DenylistHit] = []
     for hit in analyzer.hits:
@@ -439,6 +472,8 @@ def analyze_source(source: str, denylist: Sequence[str] = ()) -> tuple[list[Deny
         if key in seen:
             continue
         seen.add(key)
+        if (hit.kind, hit.symbol) in baseline_marks:
+            continue  # the reference implementation does this too
         unique.append(hit)
     unique.sort(key=lambda h: (h.line, h.col, h.symbol))
     return unique, dict(analyzer.aliases)
@@ -449,7 +484,9 @@ def check_static_denylist(ctx: OracleContext) -> CheckResult:
     started = time.perf_counter()
     denylist = tuple(getattr(ctx.seed, "denylist", ()) or ())
     try:
-        hits, aliases = analyze_source(ctx.candidate_src, denylist)
+        hits, aliases = analyze_source(
+            ctx.candidate_src, denylist, baseline_source=getattr(ctx.task, "baseline_code", None)
+        )
     except SyntaxError as exc:
         return CheckResult(
             name="static_denylist",
@@ -748,7 +785,13 @@ def _compare_to_reference(
         else:
             got_struct = [outcome.arrays[name] for name, _ in pairs]
         try:
-            res = compare(got_struct, ref)
+            # The candidate's arrays come back from the sandbox on the host
+            # while `ref` was computed on the active device, so a comparator
+            # doing tensor arithmetic raises "expected all tensors to be on the
+            # same device". O1 never hit this because it normalises first;
+            # without this, correct reference solutions fail anti-cheat -- a
+            # grader defect reported as a task defect.
+            res = compare(*align_for_compare(got_struct, ref))
         except Exception as exc:  # noqa: BLE001 - a seed defect must be reported, not hidden
             return False, float("inf"), f"seed.compare raised {type(exc).__name__}: {exc}"
         worst_rel = float(getattr(res, "max_rel_err", 0.0) or 0.0)

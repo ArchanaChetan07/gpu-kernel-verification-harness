@@ -1,0 +1,473 @@
+task_id: mut-cached_gemm-autotune_staleness-1e41
+schema_version: '1.0'
+created_utc: '2026-08-26T18:03:20+00:00'
+seed_source:
+  seed_id: autotune.cached_gemm
+  module: crucible.seeds.autotune
+  entry: autotuned_gemm
+  content_sha256: ccfd9b4f1eda1e6544c0326e46ef212706252be335e622166b3e4334a43f57ff
+domain: pytorch
+failure_tier: T2
+mutation:
+  cls: autotune_staleness
+  site: autotune.cached_gemm:Return@24:4#0
+  params:
+    key: _cache_key
+    dropped:
+    - _bucket(k)
+    kept:
+    - _bucket(m)
+    - _bucket(n)
+    form: return
+    site: Return@24:4#0
+  description: Drop the shape components from the autotune cache key, so a configuration chosen for one shape class is reused for every later shape class.
+baseline_code: "\"\"\"Blocked GEMM behind a tile-config cache keyed by shape class.\"\"\"\nimport torch\nNS_PER_MAC = 1.0 / 512.0\nNS_PER_BYTE = 1.0 / 256.0\nNS_PER_TILE_LAUNCH = 200.0\nNS_PER_K_STEP = 60.0\nMODEL_ITEMSIZE = 8\n\ndef _bucket(v):\n    \"\"\"Round a dimension up to a power of two. Two problems that bucket to the\n    same triple are the same shape class and are expected to want the same\n    tile.\"\"\"\n    b = 1\n    while b < v:\n        b *= 2\n    return b\n\ndef _cache_key(m, n, k):\n    \"\"\"The cache key. EVERY dimension that can change the optimal tile has to\n    appear here. k does: with a short reduction a wide k-block pays for padding\n    it never uses, and with a long one a narrow k-block pays per-iteration\n    overhead it did not need. A key that omits k cannot tell those apart and\n    will hand the second problem the first problem's config.\"\"\"\n    return (_bucket(m), _bucket(n), _bucket(k))\n\ndef _cost_ns(m, n, k, bm, bn, bk):\n    \"\"\"Modelled cost of running an m*n*k problem on a bm*bn*bk tiling.\n\n    Four terms, each with a reason: work actually issued including the padding\n    a tile forces, operand bytes re-read once per k-block per output tile, a\n    fixed cost per tile launched, and a fixed cost per k-loop iteration.\n    \"\"\"\n    tiles_m = (m + bm - 1) // bm\n    tiles_n = (n + bn - 1) // bn\n    tiles_k = (k + bk - 1) // bk\n    padded_macs = tiles_m * bm * (tiles_n * bn) * (tiles_k * bk)\n    traffic = tiles_m * tiles_n * tiles_k * (bm * bk + bk * bn) * MODEL_ITEMSIZE\n    launches = tiles_m * tiles_n\n    k_steps = tiles_m * tiles_n * tiles_k\n    return padded_macs * NS_PER_MAC + traffic * NS_PER_BYTE + launches * NS_PER_TILE_LAUNCH + k_steps * NS_PER_K_STEP\n\ndef _autotune(key, configs):\n    \"\"\"Search the config space on the CLASS REPRESENTATIVE, not on the concrete\n    problem. That is what makes the cache sound: the answer depends on nothing\n    but the key, so caching it cannot change any result. Ties go to the first\n    config in the given order, so the search is deterministic.\"\"\"\n    best = None\n    best_cost = None\n    for cfg in configs:\n        bm, bn, bk = (int(cfg[0]), int(cfg[1]), int(cfg[2]))\n        c = _cost_ns(key[0], key[1], key[2], bm, bn, bk)\n        if best_cost is None or c < best_cost:\n            best_cost = c\n            best = (bm, bn, bk)\n    return best\n\ndef _blocked_matmul(a, b, cfg, acc_dtype):\n    \"\"\"Tiled matmul with an explicit accumulator dtype, an explicit empty-tile\n    guard and an explicit store.\"\"\"\n    bm, bn, bk = cfg\n    m = int(a.shape[0])\n    k = int(a.shape[1])\n    n = int(b.shape[1])\n    out = torch.zeros(m, n, dtype=acc_dtype, device=a.device)\n    for i0 in range(0, m, bm):\n        i1 = min(i0 + bm, m)\n        if i1 <= i0:\n            continue\n        for j0 in range(0, n, bn):\n            j1 = min(j0 + bn, n)\n            if j1 <= j0:\n                continue\n            acc = torch.zeros(i1 - i0, j1 - j0, dtype=acc_dtype, device=a.device)\n            for p0 in range(0, k, bk):\n                p1 = min(p0 + bk, k)\n                acc = acc + a[i0:i1, p0:p1].to(acc_dtype) @ b[p0:p1, j0:j1].to(acc_dtype)\n            out[i0:i1, j0:j1] = acc\n    return out\n\ndef autotuned_gemm(a_flat, b_flat, shapes, configs, accum_dtype='float64'):\n    \"\"\"Run a sequence of GEMMs, tuning each shape class once and reusing it.\"\"\"\n    acc = getattr(torch, accum_dtype)\n    cache = {}\n    misses = 0\n    ys = []\n    chosen = []\n    costs = []\n    a_off = 0\n    b_off = 0\n    for spec in shapes:\n        m, n, k = (int(spec[0]), int(spec[1]), int(spec[2]))\n        a = a_flat[a_off:a_off + m * k].reshape(m, k)\n        a_off += m * k\n        b = b_flat[b_off:b_off + k * n].reshape(k, n)\n        b_off += k * n\n        key = _cache_key(m, n, k)\n        cfg = cache.get(key)\n        if cfg is None:\n            misses += 1\n            cfg = _autotune(key, configs)\n            cache[key] = cfg\n        ys.append(_blocked_matmul(a, b, cfg, acc).reshape(-1))\n        chosen.append([cfg[0], cfg[1], cfg[2]])\n        costs.append(_cost_ns(m, n, k, cfg[0], cfg[1], cfg[2]))\n    if ys:\n        y = torch.cat(ys).to(torch.float64)\n    else:\n        y = torch.zeros(0, dtype=torch.float64, device=a_flat.device)\n    if chosen:\n        cfg_t = torch.tensor(chosen, dtype=torch.int64)\n    else:\n        cfg_t = torch.zeros((0, 3), dtype=torch.int64)\n    cost_t = torch.tensor(costs, dtype=torch.float64)\n    return {'y': y, 'configs_used': cfg_t, 'cost_ns': cost_t, 'total_cost_ns': cost_t.sum().to(torch.float64), 'cache_misses': torch.tensor(misses, dtype=torch.int64)}\n"
+mutant_code: "\"\"\"Blocked GEMM behind a tile-config cache keyed by shape class.\"\"\"\nimport torch\nNS_PER_MAC = 1.0 / 512.0\nNS_PER_BYTE = 1.0 / 256.0\nNS_PER_TILE_LAUNCH = 200.0\nNS_PER_K_STEP = 60.0\nMODEL_ITEMSIZE = 8\n\ndef _bucket(v):\n    \"\"\"Round a dimension up to a power of two. Two problems that bucket to the\n    same triple are the same shape class and are expected to want the same\n    tile.\"\"\"\n    b = 1\n    while b < v:\n        b *= 2\n    return b\n\ndef _cache_key(m, n, k):\n    \"\"\"The cache key. EVERY dimension that can change the optimal tile has to\n    appear here. k does: with a short reduction a wide k-block pays for padding\n    it never uses, and with a long one a narrow k-block pays per-iteration\n    overhead it did not need. A key that omits k cannot tell those apart and\n    will hand the second problem the first problem's config.\"\"\"\n    return (_bucket(m), _bucket(n))\n\ndef _cost_ns(m, n, k, bm, bn, bk):\n    \"\"\"Modelled cost of running an m*n*k problem on a bm*bn*bk tiling.\n\n    Four terms, each with a reason: work actually issued including the padding\n    a tile forces, operand bytes re-read once per k-block per output tile, a\n    fixed cost per tile launched, and a fixed cost per k-loop iteration.\n    \"\"\"\n    tiles_m = (m + bm - 1) // bm\n    tiles_n = (n + bn - 1) // bn\n    tiles_k = (k + bk - 1) // bk\n    padded_macs = tiles_m * bm * (tiles_n * bn) * (tiles_k * bk)\n    traffic = tiles_m * tiles_n * tiles_k * (bm * bk + bk * bn) * MODEL_ITEMSIZE\n    launches = tiles_m * tiles_n\n    k_steps = tiles_m * tiles_n * tiles_k\n    return padded_macs * NS_PER_MAC + traffic * NS_PER_BYTE + launches * NS_PER_TILE_LAUNCH + k_steps * NS_PER_K_STEP\n\ndef _autotune(key, configs):\n    \"\"\"Search the config space on the CLASS REPRESENTATIVE, not on the concrete\n    problem. That is what makes the cache sound: the answer depends on nothing\n    but the key, so caching it cannot change any result. Ties go to the first\n    config in the given order, so the search is deterministic.\"\"\"\n    best = None\n    best_cost = None\n    for cfg in configs:\n        bm, bn, bk = (int(cfg[0]), int(cfg[1]), int(cfg[2]))\n        c = _cost_ns(key[0], key[1], key[2], bm, bn, bk)\n        if best_cost is None or c < best_cost:\n            best_cost = c\n            best = (bm, bn, bk)\n    return best\n\ndef _blocked_matmul(a, b, cfg, acc_dtype):\n    \"\"\"Tiled matmul with an explicit accumulator dtype, an explicit empty-tile\n    guard and an explicit store.\"\"\"\n    bm, bn, bk = cfg\n    m = int(a.shape[0])\n    k = int(a.shape[1])\n    n = int(b.shape[1])\n    out = torch.zeros(m, n, dtype=acc_dtype, device=a.device)\n    for i0 in range(0, m, bm):\n        i1 = min(i0 + bm, m)\n        if i1 <= i0:\n            continue\n        for j0 in range(0, n, bn):\n            j1 = min(j0 + bn, n)\n            if j1 <= j0:\n                continue\n            acc = torch.zeros(i1 - i0, j1 - j0, dtype=acc_dtype, device=a.device)\n            for p0 in range(0, k, bk):\n                p1 = min(p0 + bk, k)\n                acc = acc + a[i0:i1, p0:p1].to(acc_dtype) @ b[p0:p1, j0:j1].to(acc_dtype)\n            out[i0:i1, j0:j1] = acc\n    return out\n\ndef autotuned_gemm(a_flat, b_flat, shapes, configs, accum_dtype='float64'):\n    \"\"\"Run a sequence of GEMMs, tuning each shape class once and reusing it.\"\"\"\n    acc = getattr(torch, accum_dtype)\n    cache = {}\n    misses = 0\n    ys = []\n    chosen = []\n    costs = []\n    a_off = 0\n    b_off = 0\n    for spec in shapes:\n        m, n, k = (int(spec[0]), int(spec[1]), int(spec[2]))\n        a = a_flat[a_off:a_off + m * k].reshape(m, k)\n        a_off += m * k\n        b = b_flat[b_off:b_off + k * n].reshape(k, n)\n        b_off += k * n\n        key = _cache_key(m, n, k)\n        cfg = cache.get(key)\n        if cfg is None:\n            misses += 1\n            cfg = _autotune(key, configs)\n            cache[key] = cfg\n        ys.append(_blocked_matmul(a, b, cfg, acc).reshape(-1))\n        chosen.append([cfg[0], cfg[1], cfg[2]])\n        costs.append(_cost_ns(m, n, k, cfg[0], cfg[1], cfg[2]))\n    if ys:\n        y = torch.cat(ys).to(torch.float64)\n    else:\n        y = torch.zeros(0, dtype=torch.float64, device=a_flat.device)\n    if chosen:\n        cfg_t = torch.tensor(chosen, dtype=torch.int64)\n    else:\n        cfg_t = torch.zeros((0, 3), dtype=torch.int64)\n    cost_t = torch.tensor(costs, dtype=torch.float64)\n    return {'y': y, 'configs_used': cfg_t, 'cost_ns': cost_t, 'total_cost_ns': cost_t.sum().to(torch.float64), 'cache_misses': torch.tensor(misses, dtype=torch.int64)}\n"
+ground_truth_diff: "--- a/autotuned_gemm.py (mutant)\n+++ b/autotuned_gemm.py (baseline)\n@@ -21,7 +21,7 @@\n     it never uses, and with a long one a narrow k-block pays per-iteration\n     overhead it did not need. A key that omits k cannot tell those apart and\n     will hand the second problem the first problem's config.\"\"\"\n-    return (_bucket(m), _bucket(n))\n+    return (_bucket(m), _bucket(n), _bucket(k))\n \n def _cost_ns(m, n, k, bm, bn, bk):\n     \"\"\"Modelled cost of running an m*n*k problem on a bm*bn*bk tiling.\n"
+witness:
+  shape:
+    name: zero_m
+    kwargs:
+      shapes:
+      - - 0
+        - 16
+        - 16
+      - - 16
+        - 16
+        - 16
+  max_abs_err: 0.0
+  max_rel_err: 0.0
+  tolerance: 9.5367431640625e-07
+  baseline_checksum: eba33b1d2c05a9c03c73aa1378b5183d5b4f737c04003a679d939d5fbdcc3f52
+  mutant_checksum: ''
+  kind: exception
+  detail: 'mutant raised where the baseline succeeded: candidate_exception: IndexError: tuple index out of range | budget: fp32 eps=5.96e-08, K=16, stochastic growth sqrt(K)=4.00, safety=4 -> rel=9.54e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=9.54e-07 [crucible.oracles.tolerance.derive]'
+detect_shapes:
+- name: zero_m
+  kwargs:
+    shapes:
+    - - 0
+      - 16
+      - 16
+    - - 16
+      - 16
+      - 16
+- name: zero_k
+  kwargs:
+    shapes:
+    - - 16
+      - 16
+      - 0
+    - - 16
+      - 16
+      - 16
+- name: single_problem
+  kwargs:
+    shapes:
+    - - 64
+      - 64
+      - 64
+- name: one_class_decoy
+  kwargs:
+    shapes:
+    - - 64
+      - 64
+      - 32
+    - - 64
+      - 64
+      - 32
+    - - 60
+      - 61
+      - 30
+- name: ragged_dims
+  kwargs:
+    shapes:
+    - - 33
+      - 33
+      - 33
+    - - 17
+      - 129
+      - 5
+    - - 100
+      - 96
+      - 48
+- name: bf16_accum_probe
+  kwargs:
+    shapes:
+    - - 64
+      - 64
+      - 256
+    accum_dtype: float64
+    dtype: float32
+- name: mclass_change
+  kwargs:
+    shapes:
+    - - 64
+      - 64
+      - 64
+    - - 64
+      - 64
+      - 64
+    - - 128
+      - 64
+      - 64
+- name: class_repr_vs_concrete
+  kwargs:
+    shapes:
+    - - 65
+      - 65
+      - 65
+    - - 128
+      - 128
+      - 128
+- name: kclass_change_64
+  kwargs:
+    shapes:
+    - - 64
+      - 64
+      - 32
+    - - 64
+      - 64
+      - 32
+    - - 64
+      - 64
+      - 256
+    - - 64
+      - 64
+      - 256
+- name: kclass_interleaved_128
+  kwargs:
+    shapes:
+    - - 128
+      - 128
+      - 32
+    - - 128
+      - 128
+      - 256
+    - - 128
+      - 128
+      - 32
+    - - 128
+      - 128
+      - 256
+decoy_shapes:
+- name: empty_sequence
+  kwargs:
+    shapes: []
+prompt: "# Debugging task: `autotuned_gemm`\n\nThe `autotuned_gemm` implementation below is a pytorch routine that is believed to be\ncorrect. It is not. On at least one input it silently disagrees with an\nindependent reference implementation, and the disagreement is not visible on the\nshapes it was checked on.\n\n## Implementation under test\n\n```python\n\"\"\"Blocked GEMM behind a tile-config cache keyed by shape class.\"\"\"\nimport torch\nNS_PER_MAC = 1.0 / 512.0\nNS_PER_BYTE = 1.0 / 256.0\nNS_PER_TILE_LAUNCH = 200.0\nNS_PER_K_STEP = 60.0\nMODEL_ITEMSIZE = 8\n\ndef _bucket(v):\n    \"\"\"Round a dimension up to a power of two. Two problems that bucket to the\n    same triple are the same shape class and are expected to want the same\n    tile.\"\"\"\n    b = 1\n    while b < v:\n        b *= 2\n    return b\n\ndef _cache_key(m, n, k):\n    \"\"\"The cache key. EVERY dimension that can change the optimal tile has to\n    appear here. k does: with a short reduction a wide k-block pays for padding\n    it never uses, and with a long one a narrow k-block pays per-iteration\n    overhead it did not need. A key that omits k cannot tell those apart and\n    will hand the second problem the first problem's config.\"\"\"\n    return (_bucket(m), _bucket(n))\n\ndef _cost_ns(m, n, k, bm, bn, bk):\n    \"\"\"Modelled cost of running an m*n*k problem on a bm*bn*bk tiling.\n\n    Four terms, each with a reason: work actually issued including the padding\n    a tile forces, operand bytes re-read once per k-block per output tile, a\n    fixed cost per tile launched, and a fixed cost per k-loop iteration.\n    \"\"\"\n    tiles_m = (m + bm - 1) // bm\n    tiles_n = (n + bn - 1) // bn\n    tiles_k = (k + bk - 1) // bk\n    padded_macs = tiles_m * bm * (tiles_n * bn) * (tiles_k * bk)\n    traffic = tiles_m * tiles_n * tiles_k * (bm * bk + bk * bn) * MODEL_ITEMSIZE\n    launches = tiles_m * tiles_n\n    k_steps = tiles_m * tiles_n * tiles_k\n    return padded_macs * NS_PER_MAC + traffic * NS_PER_BYTE + launches * NS_PER_TILE_LAUNCH + k_steps * NS_PER_K_STEP\n\ndef _autotune(key, configs):\n    \"\"\"Search the config space on the CLASS REPRESENTATIVE, not on the concrete\n    problem. That is what makes the cache sound: the answer depends on nothing\n    but the key, so caching it cannot change any result. Ties go to the first\n    config in the given order, so the search is deterministic.\"\"\"\n    best = None\n    best_cost = None\n    for cfg in configs:\n        bm, bn, bk = (int(cfg[0]), int(cfg[1]), int(cfg[2]))\n        c = _cost_ns(key[0], key[1], key[2], bm, bn, bk)\n        if best_cost is None or c < best_cost:\n            best_cost = c\n            best = (bm, bn, bk)\n    return best\n\ndef _blocked_matmul(a, b, cfg, acc_dtype):\n    \"\"\"Tiled matmul with an explicit accumulator dtype, an explicit empty-tile\n    guard and an explicit store.\"\"\"\n    bm, bn, bk = cfg\n    m = int(a.shape[0])\n    k = int(a.shape[1])\n    n = int(b.shape[1])\n    out = torch.zeros(m, n, dtype=acc_dtype, device=a.device)\n    for i0 in range(0, m, bm):\n        i1 = min(i0 + bm, m)\n        if i1 <= i0:\n            continue\n        for j0 in range(0, n, bn):\n            j1 = min(j0 + bn, n)\n            if j1 <= j0:\n                continue\n            acc = torch.zeros(i1 - i0, j1 - j0, dtype=acc_dtype, device=a.device)\n            for p0 in range(0, k, bk):\n                p1 = min(p0 + bk, k)\n                acc = acc + a[i0:i1, p0:p1].to(acc_dtype) @ b[p0:p1, j0:j1].to(acc_dtype)\n            out[i0:i1, j0:j1] = acc\n    return out\n\ndef autotuned_gemm(a_flat, b_flat, shapes, configs, accum_dtype='float64'):\n    \"\"\"Run a sequence of GEMMs, tuning each shape class once and reusing it.\"\"\"\n    acc = getattr(torch, accum_dtype)\n    cache = {}\n    misses = 0\n    ys = []\n    chosen = []\n    costs = []\n    a_off = 0\n    b_off = 0\n    for spec in shapes:\n        m, n, k = (int(spec[0]), int(spec[1]), int(spec[2]))\n        a = a_flat[a_off:a_off + m * k].reshape(m, k)\n        a_off += m * k\n        b = b_flat[b_off:b_off + k * n].reshape(k, n)\n        b_off += k * n\n        key = _cache_key(m, n, k)\n        cfg = cache.get(key)\n        if cfg is None:\n            misses += 1\n            cfg = _autotune(key, configs)\n            cache[key] = cfg\n        ys.append(_blocked_matmul(a, b, cfg, acc).reshape(-1))\n        chosen.append([cfg[0], cfg[1], cfg[2]])\n        costs.append(_cost_ns(m, n, k, cfg[0], cfg[1], cfg[2]))\n    if ys:\n        y = torch.cat(ys).to(torch.float64)\n    else:\n        y = torch.zeros(0, dtype=torch.float64, device=a_flat.device)\n    if chosen:\n        cfg_t = torch.tensor(chosen, dtype=torch.int64)\n    else:\n        cfg_t = torch.zeros((0, 3), dtype=torch.int64)\n    cost_t = torch.tensor(costs, dtype=torch.float64)\n    return {'y': y, 'configs_used': cfg_t, 'cost_ns': cost_t, 'total_cost_ns': cost_t.sum().to(torch.float64), 'cache_misses': torch.tensor(misses, dtype=torch.int64)}\n```\n\n## Shapes it was checked on\n\nEach of these was executed and agreed with an independent reference to within the derived error budget, so none of them exposes the defect:\n\n- `empty_sequence`: shapes=[]\n\n## What to produce\n\n1. **Root cause.** Which expression is wrong, and what it does wrong.\n2. **Trigger class.** What property an input must have for the defect to show,\n   and why every shape above lacks that property.\n3. **Fix.** A corrected `autotuned_gemm` with the same name and the same signature.\n\n## Rules\n\n- Pure PyTorch. Do not import or call: `torch.matmul`, `torch.mm`, `torch.bmm`, `torch.einsum`, `torch.addmm`, `torch.nn.functional.linear`, `functools.lru_cache`, `functools.cache`, `crucible.seeds.autotune`.\n- Do not special-case shapes, memoise inputs, or return a precomputed answer.\n- Your submission is executed on withheld shapes chosen specifically to expose\n  this defect, with freshly seeded inputs. Reproducing the behaviour on the\n  shapes above is necessary and not sufficient.\n"
+oracles:
+- O1
+- O3
+- O4
+rubric:
+  criteria:
+  - id: numerics_within_budget
+    weight: 4.0
+    anchors:
+      '0': the fixed implementation still exceeds the derived error budget
+      '3': within the budget on every graded shape
+      '5': within the budget with margin, on the witness shape included
+    auto_probe: oracle.O1.max_rel_err
+    probe_thresholds:
+    - - 9.5367431640625e-07
+      - 5
+    - - 9.5367431640625e-05
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  - id: witness_shape_fixed
+    weight: 3.0
+    anchors:
+      '0': the withheld shape still reproduces the defect
+      '3': the withheld shape is fixed
+      '5': the withheld shape is fixed and the absolute error is at reference level
+    auto_probe: oracle.O1.max_abs_err
+    probe_thresholds:
+    - - 1.0e-06
+      - 5
+    - - 0.001
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  - id: root_cause_explanation
+    weight: 2.0
+    anchors:
+      '0': no mechanism given, or the wrong expression blamed
+      '3': names the responsible expression
+      '5': names the expression and derives why the given shapes hide it
+    auto_probe: null
+    probe_thresholds: []
+    machine_probed: false
+  - id: fix_minimality
+    weight: 1.0
+    anchors:
+      '0': rewrites unrelated code or changes the interface
+      '3': a local fix with some incidental change
+      '5': the minimal edit that removes the defect
+    auto_probe: null
+    probe_thresholds: []
+    machine_probed: false
+  version: '1.0'
+calibration: null
+provenance:
+  generator: crucible.mutate.engine
+  generator_version: '1.0'
+  host: Archana-PC
+  python: 3.11.5
+  utc: '2026-08-26T18:03:20+00:00'
+  device: cuda
+  capabilities: torch 2.6.0+cu124 on Windows-10-10.0.26200-SP0; NVIDIA T1000 8GB; cuda=True triton=False ncu=yes gloo=True nccl=False inductor(cpu=False,cuda=False)
+  seed_module: crucible.seeds.autotune
+  seed_tiers:
+  - T4
+  - T5
+  class_tier: T4
+  site:
+    lineno: 24
+    col_offset: 4
+    node_type: Return
+    ordinal: 0
+    label: return (_bucket(m), _bucket(n), _bucket(k))
+    meta:
+      key: _cache_key
+      dropped:
+      - _bucket(k)
+      kept:
+      - _bucket(m)
+      - _bucket(n)
+      form: return
+  seed_source_sha256: ccfd9b4f1eda1e6544c0326e46ef212706252be335e622166b3e4334a43f57ff
+  canonical_baseline_sha256: 23c03e63ae52950c1eab1c39da91935566e77c55e6e75a9838b732789cc84d5a
+  mutant_sha256: 1e4175263b82eaf2b2efaf5fd6a1d131cf7419e17e22cf824048a9eb60990db0
+  shapes_evaluated: 11
+  shape_outcomes:
+  - shape: empty_sequence
+    kwargs:
+      shapes: []
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.7811
+  - shape: zero_m
+    kwargs:
+      shapes:
+      - - 0
+        - 16
+        - 16
+      - - 16
+        - 16
+        - 16
+    usable: true
+    differs: true
+    kind: exception
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 9.5367431640625e-07
+    detail: 'mutant raised where the baseline succeeded: candidate_exception: IndexError: tuple index out of range'
+    baseline_ok: true
+    mutant_ok: false
+    duration_s: 3.7915
+  - shape: zero_k
+    kwargs:
+      shapes:
+      - - 16
+        - 16
+        - 0
+      - - 16
+        - 16
+        - 16
+    usable: true
+    differs: true
+    kind: exception
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 9.5367431640625e-07
+    detail: 'mutant raised where the baseline succeeded: candidate_exception: IndexError: tuple index out of range'
+    baseline_ok: true
+    mutant_ok: false
+    duration_s: 3.7398
+  - shape: single_problem
+    kwargs:
+      shapes:
+      - - 64
+        - 64
+        - 64
+    usable: true
+    differs: true
+    kind: exception
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 1.9073486328125e-06
+    detail: 'mutant raised where the baseline succeeded: candidate_exception: IndexError: tuple index out of range'
+    baseline_ok: true
+    mutant_ok: false
+    duration_s: 3.7524
+  - shape: one_class_decoy
+    kwargs:
+      shapes:
+      - - 64
+        - 64
+        - 32
+      - - 64
+        - 64
+        - 32
+      - - 60
+        - 61
+        - 30
+    usable: true
+    differs: true
+    kind: exception
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 1.3486991523486091e-06
+    detail: 'mutant raised where the baseline succeeded: candidate_exception: IndexError: tuple index out of range'
+    baseline_ok: true
+    mutant_ok: false
+    duration_s: 3.742
+  - shape: ragged_dims
+    kwargs:
+      shapes:
+      - - 33
+        - 33
+        - 33
+      - - 17
+        - 129
+        - 5
+      - - 100
+        - 96
+        - 48
+    usable: true
+    differs: true
+    kind: exception
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 1.6518123698891422e-06
+    detail: 'mutant raised where the baseline succeeded: candidate_exception: IndexError: tuple index out of range'
+    baseline_ok: true
+    mutant_ok: false
+    duration_s: 3.9366
+  - shape: bf16_accum_probe
+    kwargs:
+      shapes:
+      - - 64
+        - 64
+        - 256
+      accum_dtype: float64
+      dtype: float32
+    usable: true
+    differs: true
+    kind: exception
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 3.814697265625e-06
+    detail: 'mutant raised where the baseline succeeded: candidate_exception: IndexError: tuple index out of range'
+    baseline_ok: true
+    mutant_ok: false
+    duration_s: 3.9215
+  - shape: mclass_change
+    kwargs:
+      shapes:
+      - - 64
+        - 64
+        - 64
+      - - 64
+        - 64
+        - 64
+      - - 128
+        - 64
+        - 64
+    usable: true
+    differs: true
+    kind: exception
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 1.9073486328125e-06
+    detail: 'mutant raised where the baseline succeeded: candidate_exception: IndexError: tuple index out of range'
+    baseline_ok: true
+    mutant_ok: false
+    duration_s: 3.7799
+  - shape: class_repr_vs_concrete
+    kwargs:
+      shapes:
+      - - 65
+        - 65
+        - 65
+      - - 128
+        - 128
+        - 128
+    usable: true
+    differs: true
+    kind: exception
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.6973983046972182e-06
+    detail: 'mutant raised where the baseline succeeded: candidate_exception: IndexError: tuple index out of range'
+    baseline_ok: true
+    mutant_ok: false
+    duration_s: 3.7603
+  - shape: kclass_change_64
+    kwargs:
+      shapes:
+      - - 64
+        - 64
+        - 32
+      - - 64
+        - 64
+        - 32
+      - - 64
+        - 64
+        - 256
+      - - 64
+        - 64
+        - 256
+    usable: true
+    differs: true
+    kind: exception
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 3.814697265625e-06
+    detail: 'mutant raised where the baseline succeeded: candidate_exception: IndexError: tuple index out of range'
+    baseline_ok: true
+    mutant_ok: false
+    duration_s: 3.7792
+  - shape: kclass_interleaved_128
+    kwargs:
+      shapes:
+      - - 128
+        - 128
+        - 32
+      - - 128
+        - 128
+        - 256
+      - - 128
+        - 128
+        - 32
+      - - 128
+        - 128
+        - 256
+    usable: true
+    differs: true
+    kind: exception
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 3.814697265625e-06
+    detail: 'mutant raised where the baseline succeeded: candidate_exception: IndexError: tuple index out of range'
+    baseline_ok: true
+    mutant_ok: false
+    duration_s: 3.7978
+  tolerance:
+    rel: 9.5367431640625e-07
+    abs: 9.5367431640625e-07
+    dtype: fp32
+    accum_depth: 16
+    mode: stochastic
+    formula: 'fp32 eps=5.96e-08, K=16, stochastic growth sqrt(K)=4.00, safety=4 -> rel=9.54e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=9.54e-07'
+    source: crucible.oracles.tolerance.derive

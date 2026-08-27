@@ -41,6 +41,7 @@ from ..schema import OracleResult, ShapeSpec, Task
 from .base import OracleContext, register_oracle
 from .tolerance import (
     Tolerance,
+    align_for_compare,
     compare,
     derive,
     fixed,
@@ -80,6 +81,21 @@ _SAFE_NAME = re.compile(r"[^A-Za-z0-9_.-]+")
 # --------------------------------------------------------------------------- #
 # helpers
 # --------------------------------------------------------------------------- #
+
+
+def _structure(cand_pairs: list[tuple[str, Any]], ref: Any) -> Any:
+    """Rebuild the candidate in the shape the reference has.
+
+    A seed comparator is written against what its entry returns, so handing it
+    a flattened list when the entry returns a dict breaks that contract.
+    """
+    from collections.abc import Mapping
+
+    if isinstance(ref, Mapping):
+        return {name: arr for name, arr in cand_pairs}
+    if len(cand_pairs) == 1:
+        return cand_pairs[0][1]
+    return [arr for _name, arr in cand_pairs]
 
 
 def _flatten(value: Any) -> list[tuple[str, Any]]:
@@ -404,6 +420,33 @@ class NumericsOracle:
             )
 
         ref_by_name = dict(ref_pairs)
+
+        # A seed may ship its own comparator, and when it does that comparator
+        # defines correctness for this seed. O3 already honours it; O1 did not,
+        # so the two oracles judged different things. The autotune seed returns
+        # {y, configs_used, cost_ns, ...} -- comparing cost_ns, a nanosecond
+        # timing, under a numeric tolerance can never pass, and every shape
+        # failed for a reason that had nothing to do with numerics.
+        seed_compare = getattr(ctx.seed, "compare", None)
+        if callable(seed_compare):
+            try:
+                res = seed_compare(*align_for_compare(_structure(cand_pairs, ref_out), ref_out))
+            except Exception as exc:  # noqa: BLE001 - a seed defect is reported, not hidden
+                return finish(
+                    "fail",
+                    f"seed.compare raised {type(exc).__name__}: {exc} on shape {shape.name!r}",
+                )
+            rec["comparable"] = True
+            rec["compared_by"] = "seed.compare"
+            rec["max_rel_err"] = float(getattr(res, "max_rel_err", 0.0) or 0.0)
+            rec["max_abs_err"] = float(getattr(res, "max_abs_err", 0.0) or 0.0)
+            if not bool(getattr(res, "ok", getattr(res, "passed", False))):
+                return finish(
+                    "fail",
+                    f"shape {shape.name!r}: {getattr(res, 'detail', '') or 'seed.compare rejected the output'}",
+                )
+            return finish("pass", "")
+
         worst_abs = 0.0
         worst_rel = 0.0
         n_bad = 0

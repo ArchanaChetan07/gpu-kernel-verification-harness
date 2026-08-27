@@ -1,0 +1,531 @@
+task_id: mut-blocked_layernorm-boundary_mask-fad3
+schema_version: '1.0'
+created_utc: '2026-08-26T18:29:29+00:00'
+seed_source:
+  seed_id: reduction.blocked_layernorm
+  module: crucible.seeds.reduction
+  entry: blocked_layernorm_fwd
+  content_sha256: 4edcfd0fecb67a38f05844181ff46f4fd71bf04b880eae53905093f1f35ee0cb
+domain: triton
+failure_tier: T5
+mutation:
+  cls: boundary_mask
+  site: reduction.blocked_layernorm:Compare@56:21#0
+  params:
+    op: Lt
+    becomes: LtE
+    orientation: offsets_left
+    expression: offs_full < n
+    site: Compare@56:21#0
+  description: Relax a strict tail-guard comparison (offsets < bound) to an inclusive one, so the last partial block reads one element past the end.
+baseline_code: "\"\"\"Blocked LayerNorm forward: known-good baseline.\"\"\"\nfrom __future__ import annotations\nimport torch\n\ndef blocked_layernorm_fwd(x: torch.Tensor, weight: torch.Tensor, bias: torch.Tensor, n_valid: int, block_n: int=64, eps: float=1e-05) -> torch.Tensor:\n    \"\"\"LayerNorm over ``x[:, :n_valid]``; the padded tail is written as zeros.\n\n    ``x`` is ``(rows, N_pad)`` and ``weight`` / ``bias`` are ``(N_pad,)``. Only\n    the first ``n_valid`` columns carry data; the rest is allocation slack.\n    \"\"\"\n    rows = int(x.shape[0])\n    n_pad = int(x.shape[-1])\n    width_limit = int(block_n)\n    n = int(n_valid)\n    out = torch.empty(x.shape, dtype=x.dtype, device=x.device)\n    if n <= 0:\n        out.zero_()\n        return out\n    sum_acc = torch.zeros(rows, dtype=torch.float32, device=x.device)\n    var_acc = torch.zeros(rows, dtype=torch.float32, device=x.device)\n    n_blocks = (n_pad + width_limit - 1) // width_limit\n    for blk in range(n_blocks):\n        start = blk * width_limit\n        view = x[:, start:start + width_limit]\n        width = int(view.shape[-1])\n        lane = torch.arange(width, device=x.device)\n        offs = start + lane\n        mask = offs < n\n        if int(mask.sum()) == 0:\n            continue\n        tile = torch.zeros((rows, width_limit), dtype=torch.float32, device=x.device)\n        tile[:, lane] = view.to(torch.float32) * mask.to(torch.float32)\n        sum_acc.add_(tile.sum(dim=-1))\n    mean = sum_acc / float(n)\n    for blk in range(n_blocks):\n        start = blk * width_limit\n        view = x[:, start:start + width_limit]\n        width = int(view.shape[-1])\n        lane = torch.arange(width, device=x.device)\n        offs = start + lane\n        mask = offs < n\n        if int(mask.sum()) == 0:\n            continue\n        centred = view.to(torch.float32).clone()\n        centred.sub_(mean.unsqueeze(-1))\n        centred.mul_(mask.to(torch.float32))\n        var_acc.add_((centred * centred).sum(dim=-1))\n    var = var_acc / float(n)\n    rstd = torch.rsqrt(var + float(eps))\n    for blk in range(n_blocks):\n        start = blk * width_limit\n        view = x[:, start:start + width_limit]\n        width = int(view.shape[-1])\n        lane = torch.arange(width, device=x.device)\n        offs_full = start + torch.arange(width_limit, device=x.device)\n        mask_full = (offs_full < n).to(torch.float32)\n        if int(mask_full.sum()) == 0:\n            out[:, start:start + width] = torch.zeros((rows, width), dtype=out.dtype, device=out.device)\n            continue\n        stage = torch.zeros((rows, width_limit), dtype=torch.float32, device=x.device)\n        stage[:, lane] = view.to(torch.float32)\n        w_tile = torch.zeros(width_limit, dtype=torch.float32, device=x.device)\n        b_tile = torch.zeros(width_limit, dtype=torch.float32, device=x.device)\n        w_tile[lane] = weight[start:start + width_limit].to(torch.float32)\n        b_tile[lane] = bias[start:start + width_limit].to(torch.float32)\n        mu = mean.unsqueeze(-1).expand(rows, width_limit)\n        norm = (stage - mu) * rstd.unsqueeze(-1)\n        norm = norm * w_tile + b_tile\n        norm = norm * mask_full\n        out[:, start:start + width] = norm[:, :width].to(out.dtype)\n    return out\n"
+mutant_code: "\"\"\"Blocked LayerNorm forward: known-good baseline.\"\"\"\nfrom __future__ import annotations\nimport torch\n\ndef blocked_layernorm_fwd(x: torch.Tensor, weight: torch.Tensor, bias: torch.Tensor, n_valid: int, block_n: int=64, eps: float=1e-05) -> torch.Tensor:\n    \"\"\"LayerNorm over ``x[:, :n_valid]``; the padded tail is written as zeros.\n\n    ``x`` is ``(rows, N_pad)`` and ``weight`` / ``bias`` are ``(N_pad,)``. Only\n    the first ``n_valid`` columns carry data; the rest is allocation slack.\n    \"\"\"\n    rows = int(x.shape[0])\n    n_pad = int(x.shape[-1])\n    width_limit = int(block_n)\n    n = int(n_valid)\n    out = torch.empty(x.shape, dtype=x.dtype, device=x.device)\n    if n <= 0:\n        out.zero_()\n        return out\n    sum_acc = torch.zeros(rows, dtype=torch.float32, device=x.device)\n    var_acc = torch.zeros(rows, dtype=torch.float32, device=x.device)\n    n_blocks = (n_pad + width_limit - 1) // width_limit\n    for blk in range(n_blocks):\n        start = blk * width_limit\n        view = x[:, start:start + width_limit]\n        width = int(view.shape[-1])\n        lane = torch.arange(width, device=x.device)\n        offs = start + lane\n        mask = offs < n\n        if int(mask.sum()) == 0:\n            continue\n        tile = torch.zeros((rows, width_limit), dtype=torch.float32, device=x.device)\n        tile[:, lane] = view.to(torch.float32) * mask.to(torch.float32)\n        sum_acc.add_(tile.sum(dim=-1))\n    mean = sum_acc / float(n)\n    for blk in range(n_blocks):\n        start = blk * width_limit\n        view = x[:, start:start + width_limit]\n        width = int(view.shape[-1])\n        lane = torch.arange(width, device=x.device)\n        offs = start + lane\n        mask = offs < n\n        if int(mask.sum()) == 0:\n            continue\n        centred = view.to(torch.float32).clone()\n        centred.sub_(mean.unsqueeze(-1))\n        centred.mul_(mask.to(torch.float32))\n        var_acc.add_((centred * centred).sum(dim=-1))\n    var = var_acc / float(n)\n    rstd = torch.rsqrt(var + float(eps))\n    for blk in range(n_blocks):\n        start = blk * width_limit\n        view = x[:, start:start + width_limit]\n        width = int(view.shape[-1])\n        lane = torch.arange(width, device=x.device)\n        offs_full = start + torch.arange(width_limit, device=x.device)\n        mask_full = (offs_full <= n).to(torch.float32)\n        if int(mask_full.sum()) == 0:\n            out[:, start:start + width] = torch.zeros((rows, width), dtype=out.dtype, device=out.device)\n            continue\n        stage = torch.zeros((rows, width_limit), dtype=torch.float32, device=x.device)\n        stage[:, lane] = view.to(torch.float32)\n        w_tile = torch.zeros(width_limit, dtype=torch.float32, device=x.device)\n        b_tile = torch.zeros(width_limit, dtype=torch.float32, device=x.device)\n        w_tile[lane] = weight[start:start + width_limit].to(torch.float32)\n        b_tile[lane] = bias[start:start + width_limit].to(torch.float32)\n        mu = mean.unsqueeze(-1).expand(rows, width_limit)\n        norm = (stage - mu) * rstd.unsqueeze(-1)\n        norm = norm * w_tile + b_tile\n        norm = norm * mask_full\n        out[:, start:start + width] = norm[:, :width].to(out.dtype)\n    return out\n"
+ground_truth_diff: "--- a/blocked_layernorm_fwd.py (mutant)\n+++ b/blocked_layernorm_fwd.py (baseline)\n@@ -53,7 +53,7 @@\n         width = int(view.shape[-1])\n         lane = torch.arange(width, device=x.device)\n         offs_full = start + torch.arange(width_limit, device=x.device)\n-        mask_full = (offs_full <= n).to(torch.float32)\n+        mask_full = (offs_full < n).to(torch.float32)\n         if int(mask_full.sum()) == 0:\n             out[:, start:start + width] = torch.zeros((rows, width), dtype=out.dtype, device=out.device)\n             continue\n"
+witness:
+  shape:
+    name: empty_block_fp32
+    kwargs:
+      rows: 3
+      n_valid: 3
+      n_pad: 128
+      block_n: 64
+      eps: 1.0e-05
+      dtype: float32
+      noncontig: false
+  max_abs_err: 1.5632344484329224
+  max_rel_err: 7.025539590320359e+307
+  tolerance: 4.1295309247228556e-07
+  baseline_checksum: b9acf27d106be21e06a900e2dc6c29c9f3bd7eb1c16318eaad68b8f009e84ae3
+  mutant_checksum: bbd4d2e73e04096eb0128fc45da19299da9b0af136d716d5dfb8ad75f8c4a2e8
+  kind: numeric
+  detail: 'output ''out'': 3/384 elements outside the budget (max_abs=1.56323, max_rel=7.02554e+307, rtol=4.13e-07) | budget: fp32 eps=5.96e-08, K=3, stochastic growth sqrt(K)=1.73, safety=4 -> rel=4.13e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=4.13e-07 [crucible.oracles.tolerance.derive]'
+detect_shapes:
+- name: empty_block_fp32
+  kwargs:
+    rows: 3
+    n_valid: 3
+    n_pad: 128
+    block_n: 64
+    eps: 1.0e-05
+    dtype: float32
+    noncontig: false
+- name: n129_bf16
+  kwargs:
+    rows: 4
+    n_valid: 129
+    n_pad: 192
+    block_n: 64
+    eps: 1.0e-05
+    dtype: bfloat16
+    noncontig: false
+- name: n129_fp16
+  kwargs:
+    rows: 4
+    n_valid: 129
+    n_pad: 192
+    block_n: 64
+    eps: 1.0e-05
+    dtype: float16
+    noncontig: false
+- name: n127_fp32
+  kwargs:
+    rows: 4
+    n_valid: 127
+    n_pad: 128
+    block_n: 64
+    eps: 1.0e-05
+    dtype: float32
+    noncontig: false
+- name: noncontig_fp32
+  kwargs:
+    rows: 4
+    n_valid: 127
+    n_pad: 128
+    block_n: 64
+    eps: 1.0e-05
+    dtype: float32
+    noncontig: true
+- name: n129_fp32
+  kwargs:
+    rows: 4
+    n_valid: 129
+    n_pad: 192
+    block_n: 64
+    eps: 1.0e-05
+    dtype: float32
+    noncontig: false
+- name: width_above_block_fp32
+  kwargs:
+    rows: 4
+    n_valid: 200
+    n_pad: 256
+    block_n: 64
+    eps: 1.0e-05
+    dtype: float32
+    noncontig: false
+- name: n1023_bf16
+  kwargs:
+    rows: 2
+    n_valid: 1023
+    n_pad: 1024
+    block_n: 64
+    eps: 1.0e-05
+    dtype: bfloat16
+    noncontig: false
+- name: n1023_fp32
+  kwargs:
+    rows: 2
+    n_valid: 1023
+    n_pad: 1024
+    block_n: 64
+    eps: 1.0e-05
+    dtype: float32
+    noncontig: false
+decoy_shapes:
+- name: n1_fp32
+  kwargs:
+    rows: 1
+    n_valid: 1
+    n_pad: 1
+    block_n: 64
+    eps: 1.0e-05
+    dtype: float32
+    noncontig: false
+- name: zero_len_fp32
+  kwargs:
+    rows: 3
+    n_valid: 0
+    n_pad: 64
+    block_n: 64
+    eps: 1.0e-05
+    dtype: float32
+    noncontig: false
+- name: width_at_block_fp32
+  kwargs:
+    rows: 4
+    n_valid: 64
+    n_pad: 64
+    block_n: 64
+    eps: 1.0e-05
+    dtype: float32
+    noncontig: false
+- name: n128_fp32
+  kwargs:
+    rows: 4
+    n_valid: 128
+    n_pad: 128
+    block_n: 64
+    eps: 1.0e-05
+    dtype: float32
+    noncontig: false
+- name: n4096_fp32
+  kwargs:
+    rows: 2
+    n_valid: 4096
+    n_pad: 4096
+    block_n: 64
+    eps: 1.0e-05
+    dtype: float32
+    noncontig: false
+prompt: "# Debugging task: `blocked_layernorm_fwd`\n\nThe `blocked_layernorm_fwd` implementation below is a triton routine that is believed to be\ncorrect. It is not. On at least one input it silently disagrees with an\nindependent reference implementation, and the disagreement is not visible on the\nshapes it was checked on.\n\n## Implementation under test\n\n```python\n\"\"\"Blocked LayerNorm forward: known-good baseline.\"\"\"\nfrom __future__ import annotations\nimport torch\n\ndef blocked_layernorm_fwd(x: torch.Tensor, weight: torch.Tensor, bias: torch.Tensor, n_valid: int, block_n: int=64, eps: float=1e-05) -> torch.Tensor:\n    \"\"\"LayerNorm over ``x[:, :n_valid]``; the padded tail is written as zeros.\n\n    ``x`` is ``(rows, N_pad)`` and ``weight`` / ``bias`` are ``(N_pad,)``. Only\n    the first ``n_valid`` columns carry data; the rest is allocation slack.\n    \"\"\"\n    rows = int(x.shape[0])\n    n_pad = int(x.shape[-1])\n    width_limit = int(block_n)\n    n = int(n_valid)\n    out = torch.empty(x.shape, dtype=x.dtype, device=x.device)\n    if n <= 0:\n        out.zero_()\n        return out\n    sum_acc = torch.zeros(rows, dtype=torch.float32, device=x.device)\n    var_acc = torch.zeros(rows, dtype=torch.float32, device=x.device)\n    n_blocks = (n_pad + width_limit - 1) // width_limit\n    for blk in range(n_blocks):\n        start = blk * width_limit\n        view = x[:, start:start + width_limit]\n        width = int(view.shape[-1])\n        lane = torch.arange(width, device=x.device)\n        offs = start + lane\n        mask = offs < n\n        if int(mask.sum()) == 0:\n            continue\n        tile = torch.zeros((rows, width_limit), dtype=torch.float32, device=x.device)\n        tile[:, lane] = view.to(torch.float32) * mask.to(torch.float32)\n        sum_acc.add_(tile.sum(dim=-1))\n    mean = sum_acc / float(n)\n    for blk in range(n_blocks):\n        start = blk * width_limit\n        view = x[:, start:start + width_limit]\n        width = int(view.shape[-1])\n        lane = torch.arange(width, device=x.device)\n        offs = start + lane\n        mask = offs < n\n        if int(mask.sum()) == 0:\n            continue\n        centred = view.to(torch.float32).clone()\n        centred.sub_(mean.unsqueeze(-1))\n        centred.mul_(mask.to(torch.float32))\n        var_acc.add_((centred * centred).sum(dim=-1))\n    var = var_acc / float(n)\n    rstd = torch.rsqrt(var + float(eps))\n    for blk in range(n_blocks):\n        start = blk * width_limit\n        view = x[:, start:start + width_limit]\n        width = int(view.shape[-1])\n        lane = torch.arange(width, device=x.device)\n        offs_full = start + torch.arange(width_limit, device=x.device)\n        mask_full = (offs_full <= n).to(torch.float32)\n        if int(mask_full.sum()) == 0:\n            out[:, start:start + width] = torch.zeros((rows, width), dtype=out.dtype, device=out.device)\n            continue\n        stage = torch.zeros((rows, width_limit), dtype=torch.float32, device=x.device)\n        stage[:, lane] = view.to(torch.float32)\n        w_tile = torch.zeros(width_limit, dtype=torch.float32, device=x.device)\n        b_tile = torch.zeros(width_limit, dtype=torch.float32, device=x.device)\n        w_tile[lane] = weight[start:start + width_limit].to(torch.float32)\n        b_tile[lane] = bias[start:start + width_limit].to(torch.float32)\n        mu = mean.unsqueeze(-1).expand(rows, width_limit)\n        norm = (stage - mu) * rstd.unsqueeze(-1)\n        norm = norm * w_tile + b_tile\n        norm = norm * mask_full\n        out[:, start:start + width] = norm[:, :width].to(out.dtype)\n    return out\n```\n\n## Shapes it was checked on\n\nEach of these was executed and agreed with an independent reference to within the derived error budget, so none of them exposes the defect:\n\n- `n1_fp32`: block_n=64, dtype='float32', eps=1e-05, n_pad=1, n_valid=1, noncontig=False, rows=1\n- `zero_len_fp32`: block_n=64, dtype='float32', eps=1e-05, n_pad=64, n_valid=0, noncontig=False, rows=3\n- `width_at_block_fp32`: block_n=64, dtype='float32', eps=1e-05, n_pad=64, n_valid=64, noncontig=False, rows=4\n- `n128_fp32`: block_n=64, dtype='float32', eps=1e-05, n_pad=128, n_valid=128, noncontig=False, rows=4\n- `n4096_fp32`: block_n=64, dtype='float32', eps=1e-05, n_pad=4096, n_valid=4096, noncontig=False, rows=2\n\n## What to produce\n\n1. **Root cause.** Which expression is wrong, and what it does wrong.\n2. **Trigger class.** What property an input must have for the defect to show,\n   and why every shape above lacks that property.\n3. **Fix.** A corrected `blocked_layernorm_fwd` with the same name and the same signature.\n\n## Rules\n\n- Pure PyTorch. Do not import or call: `torch.nn.functional.layer_norm`, `torch.layer_norm`, `torch.native_layer_norm`, `torch.ops.aten.native_layer_norm`, `torch.ops.aten.layer_norm`, `torch.nn.LayerNorm`, `torch.nn.functional.group_norm`, `torch.nn.functional.rms_norm`, `torch.nn.functional.normalize`, `torch.nn.functional.batch_norm`, `torch.var_mean`, `torch.std_mean`, `torch.Tensor.var`, `torch.Tensor.std`, `torch.einsum`, `crucible.seeds.reduction.layernorm_reference`, `crucible.seeds.reduction.blocked_layernorm_fwd`.\n- Do not special-case shapes, memoise inputs, or return a precomputed answer.\n- Your submission is executed on withheld shapes chosen specifically to expose\n  this defect, with freshly seeded inputs. Reproducing the behaviour on the\n  shapes above is necessary and not sufficient.\n"
+oracles:
+- O1
+- O3
+- O4
+rubric:
+  criteria:
+  - id: numerics_within_budget
+    weight: 4.0
+    anchors:
+      '0': the fixed implementation still exceeds the derived error budget
+      '3': within the budget on every graded shape
+      '5': within the budget with margin, on the witness shape included
+    auto_probe: oracle.O1.max_rel_err
+    probe_thresholds:
+    - - 4.1295309247228556e-07
+      - 5
+    - - 4.129530924722856e-05
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  - id: witness_shape_fixed
+    weight: 3.0
+    anchors:
+      '0': the withheld shape still reproduces the defect
+      '3': the withheld shape is fixed
+      '5': the withheld shape is fixed and the absolute error is at reference level
+    auto_probe: oracle.O1.max_abs_err
+    probe_thresholds:
+    - - 0.0015632344484329225
+      - 5
+    - - 0.15632344484329225
+      - 3
+    - - 1000000000000.0
+      - 0
+    machine_probed: true
+  - id: root_cause_explanation
+    weight: 2.0
+    anchors:
+      '0': no mechanism given, or the wrong expression blamed
+      '3': names the responsible expression
+      '5': names the expression and derives why the given shapes hide it
+    auto_probe: null
+    probe_thresholds: []
+    machine_probed: false
+  - id: fix_minimality
+    weight: 1.0
+    anchors:
+      '0': rewrites unrelated code or changes the interface
+      '3': a local fix with some incidental change
+      '5': the minimal edit that removes the defect
+    auto_probe: null
+    probe_thresholds: []
+    machine_probed: false
+  version: '1.0'
+calibration: null
+provenance:
+  generator: crucible.mutate.engine
+  generator_version: '1.0'
+  host: Archana-PC
+  python: 3.11.5
+  utc: '2026-08-26T18:29:29+00:00'
+  device: cuda
+  capabilities: torch 2.6.0+cu124 on Windows-10-10.0.26200-SP0; NVIDIA T1000 8GB; cuda=True triton=False ncu=yes gloo=True nccl=False inductor(cpu=False,cuda=False)
+  seed_module: crucible.seeds.reduction
+  seed_tiers:
+  - T2
+  - T3
+  - T4
+  - T5
+  class_tier: T5
+  site:
+    lineno: 56
+    col_offset: 21
+    node_type: Compare
+    ordinal: 0
+    label: offs_full < n
+    meta:
+      op: Lt
+      becomes: LtE
+      orientation: offsets_left
+      expression: offs_full < n
+  seed_source_sha256: 4edcfd0fecb67a38f05844181ff46f4fd71bf04b880eae53905093f1f35ee0cb
+  canonical_baseline_sha256: 25ad16a65e8735376c6ad196c7a96cddac1fd5d5610d6c97bbd8c9b73d739616
+  mutant_sha256: fad3e1a8f9a2889295edb10245bfa5ca99dcb8cff4985f772ac4e56828220af6
+  shapes_evaluated: 14
+  shape_outcomes:
+  - shape: n1_fp32
+    kwargs:
+      rows: 1
+      n_valid: 1
+      n_pad: 1
+      block_n: 64
+      eps: 1.0e-05
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1991
+  - shape: zero_len_fp32
+    kwargs:
+      rows: 3
+      n_valid: 0
+      n_pad: 64
+      block_n: 64
+      eps: 1.0e-05
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.384185791015625e-07
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.38e-07); fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.38e-07'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1434
+  - shape: empty_block_fp32
+    kwargs:
+      rows: 3
+      n_valid: 3
+      n_pad: 128
+      block_n: 64
+      eps: 1.0e-05
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 1.5632344484329224
+    max_rel_err: 7.025539590320359e+307
+    tolerance: 4.1295309247228556e-07
+    detail: 'output ''out'': 3/384 elements outside the budget (max_abs=1.56323, max_rel=7.02554e+307, rtol=4.13e-07)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1163
+  - shape: width_at_block_fp32
+    kwargs:
+      rows: 4
+      n_valid: 64
+      n_pad: 64
+      block_n: 64
+      eps: 1.0e-05
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 1.9073486328125e-06
+    detail: 'baseline and mutant agree within the derived budget (rtol=1.91e-06); fp32 eps=5.96e-08, K=64, stochastic growth sqrt(K)=8.00, safety=4 -> rel=1.91e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=1.91e-06'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.0885
+  - shape: n129_bf16
+    kwargs:
+      rows: 4
+      n_valid: 129
+      n_pad: 192
+      block_n: 64
+      eps: 1.0e-05
+      dtype: bfloat16
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 2.609375
+    max_rel_err: 1.1727138809453389e+308
+    tolerance: 0.17746588580625855
+    detail: 'output ''out'': 3/768 elements outside the budget (max_abs=2.60938, max_rel=1.17271e+308, rtol=0.177)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.5115
+  - shape: n129_fp16
+    kwargs:
+      rows: 4
+      n_valid: 129
+      n_pad: 192
+      block_n: 64
+      eps: 1.0e-05
+      dtype: float16
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 2.615234375
+    max_rel_err: 1.1753472204983599e+308
+    tolerance: 0.02218323572578232
+    detail: 'output ''out'': 4/768 elements outside the budget (max_abs=2.61523, max_rel=1.17535e+308, rtol=0.0222)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1421
+  - shape: n127_fp32
+    kwargs:
+      rows: 4
+      n_valid: 127
+      n_pad: 128
+      block_n: 64
+      eps: 1.0e-05
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 1.7212920188903809
+    max_rel_err: 7.735887113631334e+307
+    tolerance: 2.6868409322702036e-06
+    detail: 'output ''out'': 4/512 elements outside the budget (max_abs=1.72129, max_rel=7.73589e+307, rtol=2.69e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.9717
+  - shape: noncontig_fp32
+    kwargs:
+      rows: 4
+      n_valid: 127
+      n_pad: 128
+      block_n: 64
+      eps: 1.0e-05
+      dtype: float32
+      noncontig: true
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 0.9246109127998352
+    max_rel_err: 4.155416725897608e+307
+    tolerance: 2.6868409322702036e-06
+    detail: 'output ''out'': 4/512 elements outside the budget (max_abs=0.924611, max_rel=4.15542e+307, rtol=2.69e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.9298
+  - shape: n128_fp32
+    kwargs:
+      rows: 4
+      n_valid: 128
+      n_pad: 128
+      block_n: 64
+      eps: 1.0e-05
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 2.6973983046972182e-06
+    detail: 'baseline and mutant agree within the derived budget (rtol=2.7e-06); fp32 eps=5.96e-08, K=128, stochastic growth sqrt(K)=11.31, safety=4 -> rel=2.70e-06; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=2.70e-06'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 3.9981
+  - shape: n129_fp32
+    kwargs:
+      rows: 4
+      n_valid: 129
+      n_pad: 192
+      block_n: 64
+      eps: 1.0e-05
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 2.615097761154175
+    max_rel_err: 1.175285823055168e+308
+    tolerance: 2.707914517307412e-06
+    detail: 'output ''out'': 4/768 elements outside the budget (max_abs=2.6151, max_rel=1.17529e+308, rtol=2.71e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1894
+  - shape: width_above_block_fp32
+    kwargs:
+      rows: 4
+      n_valid: 200
+      n_pad: 256
+      block_n: 64
+      eps: 1.0e-05
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 1.5062294006347656
+    max_rel_err: 6.769345632622247e+307
+    tolerance: 3.3717478808715227e-06
+    detail: 'output ''out'': 4/1024 elements outside the budget (max_abs=1.50623, max_rel=6.76935e+307, rtol=3.37e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1272
+  - shape: n1023_bf16
+    kwargs:
+      rows: 2
+      n_valid: 1023
+      n_pad: 1024
+      block_n: 64
+      eps: 1.0e-05
+      dtype: bfloat16
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 2.078125
+    max_rel_err: 9.339577614714376e+307
+    tolerance: 0.49975579974123363
+    detail: 'output ''out'': 1/2048 elements outside the budget (max_abs=2.07812, max_rel=9.33958e+307, rtol=0.5)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.0942
+  - shape: n1023_fp32
+    kwargs:
+      rows: 2
+      n_valid: 1023
+      n_pad: 1024
+      block_n: 64
+      eps: 1.0e-05
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: true
+    kind: numeric
+    max_abs_err: 2.073420763015747
+    max_rel_err: 9.318435678385983e+307
+    tolerance: 7.625668331012476e-06
+    detail: 'output ''out'': 2/2048 elements outside the budget (max_abs=2.07342, max_rel=9.31844e+307, rtol=7.63e-06)'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.1718
+  - shape: n4096_fp32
+    kwargs:
+      rows: 2
+      n_valid: 4096
+      n_pad: 4096
+      block_n: 64
+      eps: 1.0e-05
+      dtype: float32
+      noncontig: false
+    usable: true
+    differs: false
+    kind: numeric
+    max_abs_err: 0.0
+    max_rel_err: 0.0
+    tolerance: 1.52587890625e-05
+    detail: 'baseline and mutant agree within the derived budget (rtol=1.53e-05); fp32 eps=5.96e-08, K=4096, stochastic growth sqrt(K)=64.00, safety=4 -> rel=1.53e-05; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=1.53e-05'
+    baseline_ok: true
+    mutant_ok: true
+    duration_s: 4.282
+  tolerance:
+    rel: 4.1295309247228556e-07
+    abs: 4.1295309247228556e-07
+    dtype: fp32
+    accum_depth: 3
+    mode: stochastic
+    formula: 'fp32 eps=5.96e-08, K=3, stochastic growth sqrt(K)=1.73, safety=4 -> rel=4.13e-07; scale=1.000e+00 (unit: no reference magnitude observed) -> abs=4.13e-07'
+    source: crucible.oracles.tolerance.derive

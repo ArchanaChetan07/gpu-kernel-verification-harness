@@ -1,0 +1,1491 @@
+{
+  "task_id": "mut-tiled-accum_dtype-6dc7",
+  "verdict": "PASS",
+  "executed": true,
+  "oracle_results": [
+    {
+      "oracle": "O1",
+      "verdict": "PASS",
+      "reason": "all 14 shape(s) matched the reference within their derived tolerance",
+      "evidence": {
+        "device": "cuda",
+        "rng_seed": 1234,
+        "tolerance_mode": "stochastic",
+        "tolerance_safety": 4.0,
+        "candidate_execution": "subprocess sandbox (crucible.runner.sandbox.call_entry); candidate code is never executed in the grading interpreter",
+        "reference_execution": "in-process (seed.reference is first-party seed-bank code, not candidate input)",
+        "seed_id": "matmul.tiled",
+        "entry": "tiled_matmul",
+        "per_shape": [
+          {
+            "name": "k1_fp32",
+            "shape_key": "035e9078c47cc3fc",
+            "kwargs": {
+              "m": 1,
+              "n": 1,
+              "k_valid": 1,
+              "k_pad": 1,
+              "block_m": 32,
+              "block_n": 32,
+              "block_k": 64,
+              "dtype": "float32",
+              "noncontig": false
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 56530250,
+            "reference_outputs": [
+              {
+                "name": "out",
+                "dtype": "float32",
+                "shape": [
+                  1,
+                  1
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 1,
+            "tolerance": {
+              "rel": 2.384185791015625e-07,
+              "abs": 1.5994497459814738e-07,
+              "dtype": "fp32",
+              "accum_depth": 1,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=6.709e-01 (caller-supplied scale) -> abs=1.60e-07",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 1.0,
+              "scale": 0.670857846736908,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=6.709e-01 (caller-supplied scale) -> abs=1.60e-07",
+            "sandbox_duration_s": 2.158201799960807,
+            "checksums": {
+              "out": "ae78110d8bb55dee7b5704dc812d8e277403b5bdc70bdceae595a5143a82304e"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1,
+                "n_comparable": 1,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "out"
+              }
+            ],
+            "max_abs_err": 0.0,
+            "max_rel_err": 0.0,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 2.1764754001051188
+          },
+          {
+            "name": "k127_fp32",
+            "shape_key": "7174ea37dafb4951",
+            "kwargs": {
+              "m": 8,
+              "n": 8,
+              "k_valid": 127,
+              "k_pad": 128,
+              "block_m": 32,
+              "block_n": 32,
+              "block_k": 64,
+              "dtype": "float32",
+              "noncontig": false
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 1903488777,
+            "reference_outputs": [
+              {
+                "name": "out",
+                "dtype": "float32",
+                "shape": [
+                  8,
+                  8
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 127,
+            "tolerance": {
+              "rel": 2.6868409322702036e-06,
+              "abs": 9.223641501731094e-05,
+              "dtype": "fp32",
+              "accum_depth": 127,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=127, stochastic growth sqrt(K)=11.27, safety=4 -> rel=2.69e-06; scale=3.433e+01 (caller-supplied scale) -> abs=9.22e-05",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 11.269427669584644,
+              "scale": 34.32894515991211,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=127, stochastic growth sqrt(K)=11.27, safety=4 -> rel=2.69e-06; scale=3.433e+01 (caller-supplied scale) -> abs=9.22e-05",
+            "sandbox_duration_s": 2.0778746001888067,
+            "checksums": {
+              "out": "e94643d80fb748c69d332f6083415f9d32605be662f27f1ef1c3740cc9d1913c"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 2.86102294921875e-06,
+                "max_rel_err": 4.632549483900898e-06,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 64,
+                "n_comparable": 64,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "out"
+              }
+            ],
+            "max_abs_err": 2.86102294921875e-06,
+            "max_rel_err": 4.632549483900898e-06,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 2.0973952000495046
+          },
+          {
+            "name": "k128_fp32",
+            "shape_key": "cc072c503959d9aa",
+            "kwargs": {
+              "m": 8,
+              "n": 8,
+              "k_valid": 128,
+              "k_pad": 128,
+              "block_m": 32,
+              "block_n": 32,
+              "block_k": 64,
+              "dtype": "float32",
+              "noncontig": false
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 1275539747,
+            "reference_outputs": [
+              {
+                "name": "out",
+                "dtype": "float32",
+                "shape": [
+                  8,
+                  8
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 128,
+            "tolerance": {
+              "rel": 2.6973983046972182e-06,
+              "abs": 7.264913296087373e-05,
+              "dtype": "fp32",
+              "accum_depth": 128,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=128, stochastic growth sqrt(K)=11.31, safety=4 -> rel=2.70e-06; scale=2.693e+01 (caller-supplied scale) -> abs=7.26e-05",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 11.313708498984761,
+              "scale": 26.93303871154785,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=128, stochastic growth sqrt(K)=11.31, safety=4 -> rel=2.70e-06; scale=2.693e+01 (caller-supplied scale) -> abs=7.26e-05",
+            "sandbox_duration_s": 2.0108197999652475,
+            "checksums": {
+              "out": "58607305e56b993f3cc27f443c3925d9cf439b02cddde14c8fb504c8af7bd88a"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 3.814697265625e-06,
+                "max_rel_err": 1.9063323595152197e-05,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 64,
+                "n_comparable": 64,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "out"
+              }
+            ],
+            "max_abs_err": 3.814697265625e-06,
+            "max_rel_err": 1.9063323595152197e-05,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 2.0297620000783354
+          },
+          {
+            "name": "k129_fp32",
+            "shape_key": "9d084bb7d49c1579",
+            "kwargs": {
+              "m": 8,
+              "n": 8,
+              "k_valid": 129,
+              "k_pad": 192,
+              "block_m": 32,
+              "block_n": 32,
+              "block_k": 64,
+              "dtype": "float32",
+              "noncontig": false
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 487084170,
+            "reference_outputs": [
+              {
+                "name": "out",
+                "dtype": "float32",
+                "shape": [
+                  8,
+                  8
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 129,
+            "tolerance": {
+              "rel": 2.707914517307412e-06,
+              "abs": 7.191701737176487e-05,
+              "dtype": "fp32",
+              "accum_depth": 129,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=129, stochastic growth sqrt(K)=11.36, safety=4 -> rel=2.71e-06; scale=2.656e+01 (caller-supplied scale) -> abs=7.19e-05",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 11.357816691600547,
+              "scale": 26.558082580566406,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=129, stochastic growth sqrt(K)=11.36, safety=4 -> rel=2.71e-06; scale=2.656e+01 (caller-supplied scale) -> abs=7.19e-05",
+            "sandbox_duration_s": 2.2374256998300552,
+            "checksums": {
+              "out": "2906cdae70e6db3431cbb3fddd6648f5ca8642ee65bfb8414d9588344ea6e97c"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 4.76837158203125e-06,
+                "max_rel_err": 7.94055699037009e-06,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 64,
+                "n_comparable": 64,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "out"
+              }
+            ],
+            "max_abs_err": 4.76837158203125e-06,
+            "max_rel_err": 7.94055699037009e-06,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 2.2570783998817205
+          },
+          {
+            "name": "k1023_fp32",
+            "shape_key": "9326f2ae6639ade8",
+            "kwargs": {
+              "m": 4,
+              "n": 4,
+              "k_valid": 1023,
+              "k_pad": 1024,
+              "block_m": 32,
+              "block_n": 32,
+              "block_k": 64,
+              "dtype": "float32",
+              "noncontig": false
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 321320833,
+            "reference_outputs": [
+              {
+                "name": "out",
+                "dtype": "float32",
+                "shape": [
+                  4,
+                  4
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 1023,
+            "tolerance": {
+              "rel": 7.625668331012476e-06,
+              "abs": 0.00045417355858592224,
+              "dtype": "fp32",
+              "accum_depth": 1023,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=1023, stochastic growth sqrt(K)=31.98, safety=4 -> rel=7.63e-06; scale=5.956e+01 (caller-supplied scale) -> abs=4.54e-04",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 31.984371183438952,
+              "scale": 59.55852508544922,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=1023, stochastic growth sqrt(K)=31.98, safety=4 -> rel=7.63e-06; scale=5.956e+01 (caller-supplied scale) -> abs=4.54e-04",
+            "sandbox_duration_s": 2.236846099840477,
+            "checksums": {
+              "out": "c1a7cb5d831f8b640a46aaa75dbfecf8a0c514b09a2f74509f79ca53f020bf6a"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 1.1444091796875e-05,
+                "max_rel_err": 2.964739610625923e-06,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 16,
+                "n_comparable": 16,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "out"
+              }
+            ],
+            "max_abs_err": 1.1444091796875e-05,
+            "max_rel_err": 2.964739610625923e-06,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 2.2551281000487506
+          },
+          {
+            "name": "k4096_fp32",
+            "shape_key": "ff236ac8a826048b",
+            "kwargs": {
+              "m": 4,
+              "n": 4,
+              "k_valid": 4096,
+              "k_pad": 4096,
+              "block_m": 32,
+              "block_n": 32,
+              "block_k": 64,
+              "dtype": "float32",
+              "noncontig": false
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 2133028763,
+            "reference_outputs": [
+              {
+                "name": "out",
+                "dtype": "float32",
+                "shape": [
+                  4,
+                  4
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 4096,
+            "tolerance": {
+              "rel": 1.52587890625e-05,
+              "abs": 0.0017266328213736415,
+              "dtype": "fp32",
+              "accum_depth": 4096,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=4096, stochastic growth sqrt(K)=64.00, safety=4 -> rel=1.53e-05; scale=1.132e+02 (caller-supplied scale) -> abs=1.73e-03",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 64.0,
+              "scale": 113.15660858154297,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=4096, stochastic growth sqrt(K)=64.00, safety=4 -> rel=1.53e-05; scale=1.132e+02 (caller-supplied scale) -> abs=1.73e-03",
+            "sandbox_duration_s": 2.032500199973583,
+            "checksums": {
+              "out": "29365604d9c33c3232cdd10b36cf4e9f1990e141d117f7c935bedba67cd5346e"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 1.52587890625e-05,
+                "max_rel_err": 6.497687194655113e-07,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 16,
+                "n_comparable": 16,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "out"
+              }
+            ],
+            "max_abs_err": 1.52587890625e-05,
+            "max_rel_err": 6.497687194655113e-07,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 2.049576599849388
+          },
+          {
+            "name": "empty_block_fp32",
+            "shape_key": "c6f6295603ba6d94",
+            "kwargs": {
+              "m": 8,
+              "n": 8,
+              "k_valid": 1,
+              "k_pad": 128,
+              "block_m": 32,
+              "block_n": 32,
+              "block_k": 64,
+              "dtype": "float32",
+              "noncontig": false
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 1190538793,
+            "reference_outputs": [
+              {
+                "name": "out",
+                "dtype": "float32",
+                "shape": [
+                  8,
+                  8
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 1,
+            "tolerance": {
+              "rel": 2.384185791015625e-07,
+              "abs": 9.138565246757935e-07,
+              "dtype": "fp32",
+              "accum_depth": 1,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=3.833e+00 (caller-supplied scale) -> abs=9.14e-07",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 1.0,
+              "scale": 3.8329920768737793,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=3.833e+00 (caller-supplied scale) -> abs=9.14e-07",
+            "sandbox_duration_s": 1.971810800023377,
+            "checksums": {
+              "out": "9382d49664ac8d585e5f394f2e89b881b066755875df0a42054102300e4e8d57"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 64,
+                "n_comparable": 64,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "out"
+              }
+            ],
+            "max_abs_err": 0.0,
+            "max_rel_err": 0.0,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 1.988967000041157
+          },
+          {
+            "name": "zero_k_fp32",
+            "shape_key": "d72f8662e21b5f5a",
+            "kwargs": {
+              "m": 8,
+              "n": 8,
+              "k_valid": 0,
+              "k_pad": 64,
+              "block_m": 32,
+              "block_n": 32,
+              "block_k": 64,
+              "dtype": "float32",
+              "noncontig": false
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 1462733621,
+            "reference_outputs": [
+              {
+                "name": "out",
+                "dtype": "float32",
+                "shape": [
+                  8,
+                  8
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 1,
+            "tolerance": {
+              "rel": 2.384185791015625e-07,
+              "abs": 2.384185791015625e-07,
+              "dtype": "fp32",
+              "accum_depth": 1,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit fallback: reference magnitude is zero or non-finite) -> abs=2.38e-07",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 1.0,
+              "scale": 1.0,
+              "scale_source": "unit fallback: reference magnitude is zero or non-finite",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=1, stochastic growth sqrt(K)=1.00, safety=4 -> rel=2.38e-07; scale=1.000e+00 (unit fallback: reference magnitude is zero or non-finite) -> abs=2.38e-07",
+            "sandbox_duration_s": 1.7862454999703914,
+            "checksums": {
+              "out": "73b25d236d4931517be58243421d1b3caf538d38647e74ee9573315b101b7a3a"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 64,
+                "n_comparable": 64,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 64,
+                "kind": "numeric",
+                "detail": "64 reference entries are exactly zero (absolute budget only)",
+                "name": "out"
+              }
+            ],
+            "max_abs_err": 0.0,
+            "max_rel_err": 0.0,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 1.8046189001761377
+          },
+          {
+            "name": "tile_at_block_fp32",
+            "shape_key": "5ddfaf446970b078",
+            "kwargs": {
+              "m": 32,
+              "n": 32,
+              "k_valid": 65,
+              "k_pad": 128,
+              "block_m": 32,
+              "block_n": 32,
+              "block_k": 64,
+              "dtype": "float32",
+              "noncontig": false
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 1574941718,
+            "reference_outputs": [
+              {
+                "name": "out",
+                "dtype": "float32",
+                "shape": [
+                  32,
+                  32
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 65,
+            "tolerance": {
+              "rel": 1.922192036699903e-06,
+              "abs": 5.7044984818392815e-05,
+              "dtype": "fp32",
+              "accum_depth": 65,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=65, stochastic growth sqrt(K)=8.06, safety=4 -> rel=1.92e-06; scale=2.968e+01 (caller-supplied scale) -> abs=5.70e-05",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 8.06225774829855,
+              "scale": 29.677047729492188,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=65, stochastic growth sqrt(K)=8.06, safety=4 -> rel=1.92e-06; scale=2.968e+01 (caller-supplied scale) -> abs=5.70e-05",
+            "sandbox_duration_s": 2.009638999821618,
+            "checksums": {
+              "out": "2272402bf021a1345e04e959d5e04c204615b9502cd38b1e821c456261ca8544"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 3.814697265625e-06,
+                "max_rel_err": 3.1509074613488686e-05,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1024,
+                "n_comparable": 1024,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "out"
+              }
+            ],
+            "max_abs_err": 3.814697265625e-06,
+            "max_rel_err": 3.1509074613488686e-05,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 2.0324411999899894
+          },
+          {
+            "name": "tile_above_block_fp32",
+            "shape_key": "79f0dc8091ba6308",
+            "kwargs": {
+              "m": 33,
+              "n": 33,
+              "k_valid": 65,
+              "k_pad": 128,
+              "block_m": 32,
+              "block_n": 32,
+              "block_k": 64,
+              "dtype": "float32",
+              "noncontig": false
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 2045829458,
+            "reference_outputs": [
+              {
+                "name": "out",
+                "dtype": "float32",
+                "shape": [
+                  33,
+                  33
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 65,
+            "tolerance": {
+              "rel": 1.922192036699903e-06,
+              "abs": 4.5236274215246686e-05,
+              "dtype": "fp32",
+              "accum_depth": 65,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=65, stochastic growth sqrt(K)=8.06, safety=4 -> rel=1.92e-06; scale=2.353e+01 (caller-supplied scale) -> abs=4.52e-05",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 8.06225774829855,
+              "scale": 23.53369140625,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=65, stochastic growth sqrt(K)=8.06, safety=4 -> rel=1.92e-06; scale=2.353e+01 (caller-supplied scale) -> abs=4.52e-05",
+            "sandbox_duration_s": 1.9569447000976652,
+            "checksums": {
+              "out": "ba57f8e5c3c9229c0c018633be0d2e5b6dd5861912c09d4bb1f75e194f91be1f"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 2.86102294921875e-06,
+                "max_rel_err": 6.828553134401171e-06,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 1089,
+                "n_comparable": 1089,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "out"
+              }
+            ],
+            "max_abs_err": 2.86102294921875e-06,
+            "max_rel_err": 6.828553134401171e-06,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 1.9777924998197705
+          },
+          {
+            "name": "noncontig_fp32",
+            "shape_key": "a8bace29dec1d355",
+            "kwargs": {
+              "m": 8,
+              "n": 8,
+              "k_valid": 127,
+              "k_pad": 128,
+              "block_m": 32,
+              "block_n": 32,
+              "block_k": 64,
+              "dtype": "float32",
+              "noncontig": true
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 683332348,
+            "reference_outputs": [
+              {
+                "name": "out",
+                "dtype": "float32",
+                "shape": [
+                  8,
+                  8
+                ]
+              }
+            ],
+            "dtype": "fp32",
+            "accum_depth": 127,
+            "tolerance": {
+              "rel": 2.6868409322702036e-06,
+              "abs": 8.141715115265627e-05,
+              "dtype": "fp32",
+              "accum_depth": 127,
+              "mode": "stochastic",
+              "formula": "fp32 eps=5.96e-08, K=127, stochastic growth sqrt(K)=11.27, safety=4 -> rel=2.69e-06; scale=3.030e+01 (caller-supplied scale) -> abs=8.14e-05",
+              "safety": 4.0,
+              "eps": 5.960464477539063e-08,
+              "growth": 11.269427669584644,
+              "scale": 30.30218505859375,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp32 eps=5.96e-08, K=127, stochastic growth sqrt(K)=11.27, safety=4 -> rel=2.69e-06; scale=3.030e+01 (caller-supplied scale) -> abs=8.14e-05",
+            "sandbox_duration_s": 1.956878500059247,
+            "checksums": {
+              "out": "de733f9ad4396ab6c02c5c2d36425b13688a802885fae180c0baccc6e5234d3a"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 3.814697265625e-06,
+                "max_rel_err": 0.0003614022406938923,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 64,
+                "n_comparable": 64,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "out"
+              }
+            ],
+            "max_abs_err": 3.814697265625e-06,
+            "max_rel_err": 0.0003614022406938923,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 1.9758699999656528
+          },
+          {
+            "name": "k129_bf16",
+            "shape_key": "9649d3e5b9402781",
+            "kwargs": {
+              "m": 8,
+              "n": 8,
+              "k_valid": 129,
+              "k_pad": 192,
+              "block_m": 32,
+              "block_n": 32,
+              "block_k": 64,
+              "dtype": "bfloat16",
+              "noncontig": false
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 373938360,
+            "reference_outputs": [
+              {
+                "name": "out",
+                "dtype": "float32",
+                "shape": [
+                  8,
+                  8
+                ]
+              }
+            ],
+            "dtype": "bf16",
+            "accum_depth": 129,
+            "tolerance": {
+              "rel": 0.17746588580625855,
+              "abs": 6.654970717734695,
+              "dtype": "bf16",
+              "accum_depth": 129,
+              "mode": "stochastic",
+              "formula": "bf16 eps=3.91e-03, K=129, stochastic growth sqrt(K)=11.36, safety=4 -> rel=1.77e-01; scale=3.750e+01 (caller-supplied scale) -> abs=6.65e+00",
+              "safety": 4.0,
+              "eps": 0.00390625,
+              "growth": 11.357816691600547,
+              "scale": 37.5,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "bf16 eps=3.91e-03, K=129, stochastic growth sqrt(K)=11.36, safety=4 -> rel=1.77e-01; scale=3.750e+01 (caller-supplied scale) -> abs=6.65e+00",
+            "sandbox_duration_s": 1.8699807000812143,
+            "checksums": {
+              "out": "1d77f376f1db90dd2dbc88a7d134d7290122a3505e773e91c01d8fb36d065958"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 64,
+                "n_comparable": 64,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "out"
+              }
+            ],
+            "max_abs_err": 0.0,
+            "max_rel_err": 0.0,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 1.8932487999554724
+          },
+          {
+            "name": "k129_fp16",
+            "shape_key": "25d4721db2f142b4",
+            "kwargs": {
+              "m": 8,
+              "n": 8,
+              "k_valid": 129,
+              "k_pad": 192,
+              "block_m": 32,
+              "block_n": 32,
+              "block_k": 64,
+              "dtype": "float16",
+              "noncontig": false
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 634681071,
+            "reference_outputs": [
+              {
+                "name": "out",
+                "dtype": "float16",
+                "shape": [
+                  8,
+                  8
+                ]
+              }
+            ],
+            "dtype": "fp16",
+            "accum_depth": 129,
+            "tolerance": {
+              "rel": 0.02218323572578232,
+              "abs": 0.4374256794677701,
+              "dtype": "fp16",
+              "accum_depth": 129,
+              "mode": "stochastic",
+              "formula": "fp16 eps=4.88e-04, K=129, stochastic growth sqrt(K)=11.36, safety=4 -> rel=2.22e-02; scale=1.972e+01 (caller-supplied scale) -> abs=4.37e-01",
+              "safety": 4.0,
+              "eps": 0.00048828125,
+              "growth": 11.357816691600547,
+              "scale": 19.71875,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "fp16 eps=4.88e-04, K=129, stochastic growth sqrt(K)=11.36, safety=4 -> rel=2.22e-02; scale=1.972e+01 (caller-supplied scale) -> abs=4.37e-01",
+            "sandbox_duration_s": 1.8223238999489695,
+            "checksums": {
+              "out": "27dff4fc7bc5eeaef3da5c702a8ce725dd362b80472488ba2982bc175981fb39"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 64,
+                "n_comparable": 64,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "out"
+              }
+            ],
+            "max_abs_err": 0.0,
+            "max_rel_err": 0.0,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 1.8431298001669347
+          },
+          {
+            "name": "k1023_bf16",
+            "shape_key": "10ccefafb400e883",
+            "kwargs": {
+              "m": 4,
+              "n": 4,
+              "k_valid": 1023,
+              "k_pad": 1024,
+              "block_m": 32,
+              "block_n": 32,
+              "block_k": 64,
+              "dtype": "bfloat16",
+              "noncontig": false
+            },
+            "status": "pass",
+            "reason": "",
+            "device": "cuda",
+            "rng_seed": 281867393,
+            "reference_outputs": [
+              {
+                "name": "out",
+                "dtype": "float32",
+                "shape": [
+                  4,
+                  4
+                ]
+              }
+            ],
+            "dtype": "bf16",
+            "accum_depth": 1023,
+            "tolerance": {
+              "rel": 0.49975579974123363,
+              "abs": 39.23083027968684,
+              "dtype": "bf16",
+              "accum_depth": 1023,
+              "mode": "stochastic",
+              "formula": "bf16 eps=3.91e-03, K=1023, stochastic growth sqrt(K)=31.98, safety=4 -> rel=5.00e-01; scale=7.850e+01 (caller-supplied scale) -> abs=3.92e+01",
+              "safety": 4.0,
+              "eps": 0.00390625,
+              "growth": 31.984371183438952,
+              "scale": 78.5,
+              "scale_source": "caller-supplied scale",
+              "derived": true,
+              "note": ""
+            },
+            "tolerance_formula": "bf16 eps=3.91e-03, K=1023, stochastic growth sqrt(K)=31.98, safety=4 -> rel=5.00e-01; scale=7.850e+01 (caller-supplied scale) -> abs=3.92e+01",
+            "sandbox_duration_s": 1.8815997999627143,
+            "checksums": {
+              "out": "d2b72df03fb25b1c5ecaf1e0eba671d6e3607b8da38d51fe0db2f10b4b145548"
+            },
+            "per_output": [
+              {
+                "passed": true,
+                "max_abs_err": 0.0,
+                "max_rel_err": 0.0,
+                "n_bad": 0,
+                "first_bad_index": null,
+                "n_total": 16,
+                "n_comparable": 16,
+                "n_nan_mismatch": 0,
+                "n_inf_mismatch": 0,
+                "n_zero_ref": 0,
+                "kind": "numeric",
+                "detail": "",
+                "name": "out"
+              }
+            ],
+            "max_abs_err": 0.0,
+            "max_rel_err": 0.0,
+            "n_bad": 0,
+            "first_bad_index": null,
+            "comparable": true,
+            "duration_s": 1.900823500007391
+          }
+        ],
+        "shapes_evaluated": [
+          "k1_fp32",
+          "k127_fp32",
+          "k128_fp32",
+          "k129_fp32",
+          "k1023_fp32",
+          "k4096_fp32",
+          "empty_block_fp32",
+          "zero_k_fp32",
+          "tile_at_block_fp32",
+          "tile_above_block_fp32",
+          "noncontig_fp32",
+          "k129_bf16",
+          "k129_fp16",
+          "k1023_bf16"
+        ],
+        "shapes_not_run": [],
+        "first_break_shape": null,
+        "first_break": null,
+        "summary": {
+          "n_shapes": 14,
+          "n_passed": 14,
+          "n_failed": 0,
+          "n_not_run": 0,
+          "n_compared": 14
+        },
+        "max_abs_err": 1.52587890625e-05,
+        "max_rel_err": 0.0003614022406938923
+      },
+      "duration_s": 28.283903500065207,
+      "capabilities_used": []
+    },
+    {
+      "oracle": "O3",
+      "verdict": "PASS",
+      "reason": "",
+      "evidence": {
+        "checks": {
+          "static_denylist": {
+            "check": "static_denylist",
+            "verdict": "PASS",
+            "detail": "no denylisted symbol and no dynamic name construction; 2 import alias(es) resolved",
+            "duration_s": 0.002573,
+            "denylist": [
+              "torch.matmul",
+              "torch.mm",
+              "torch.bmm",
+              "torch.addmm",
+              "torch.addbmm",
+              "torch.baddbmm",
+              "torch.einsum",
+              "torch.tensordot",
+              "torch.inner",
+              "torch.Tensor.matmul",
+              "torch.Tensor.mm",
+              "torch.nn.functional.linear",
+              "torch.nn.Linear",
+              "torch.ops.aten.mm",
+              "torch.ops.aten.addmm",
+              "numpy.matmul",
+              "numpy.dot",
+              "crucible.seeds.matmul.matmul_reference",
+              "crucible.seeds.matmul.tiled_matmul"
+            ],
+            "denylist_empty": false,
+            "aliases": {
+              "annotations": "__future__.annotations",
+              "torch": "torch"
+            },
+            "hits": [],
+            "hit_count": 0
+          },
+          "randomized_inputs": {
+            "check": "randomized_inputs",
+            "verdict": "PASS",
+            "detail": "agrees with the reference on both freshly seeded input sets [53152925, 923022656]",
+            "duration_s": 3.766263,
+            "shape": "k1_fp32(035e9078c47cc3fc)",
+            "shapes_rejected_as_degenerate": [
+              "zero_k_fp32"
+            ],
+            "input_seeds": [
+              53152925,
+              923022656
+            ],
+            "inputs_differed": true,
+            "identical_checksums": false,
+            "runs": [
+              {
+                "ok": true,
+                "checksums": {
+                  "out": "581150f48d6da0dd28595c09cd8e928d3d8091947bb0e6fada5a2a1d0117b994"
+                },
+                "error": "",
+                "duration_s": 1.872363,
+                "input_seed": 53152925,
+                "shape": "k1_fp32(035e9078c47cc3fc)",
+                "agrees_with_reference": true,
+                "max_rel_err": 0.0,
+                "detail": ""
+              },
+              {
+                "ok": true,
+                "checksums": {
+                  "out": "4fd954d705c16a2b8e7362800878ef93d4cf5b772892ace05a1809a6c1f5f199"
+                },
+                "error": "",
+                "duration_s": 1.886053,
+                "input_seed": 923022656,
+                "shape": "k1_fp32(035e9078c47cc3fc)",
+                "agrees_with_reference": true,
+                "max_rel_err": 0.0,
+                "detail": ""
+              }
+            ],
+            "agreement": "both_agree"
+          },
+          "held_out_shapes": {
+            "check": "held_out_shapes",
+            "verdict": "PASS",
+            "detail": "agrees with the reference on all 3 withheld shape(s)",
+            "duration_s": 5.556108,
+            "held_out": [
+              "k1_fp32(035e9078c47cc3fc)",
+              "empty_block_fp32(c6f6295603ba6d94)",
+              "k129_bf16(9649d3e5b9402781)"
+            ],
+            "shown_in_prompt": [
+              "zero_k_fp32(d72f8662e21b5f5a)"
+            ],
+            "per_shape": [
+              {
+                "shape": "k1_fp32(035e9078c47cc3fc)",
+                "shape_name": "k1_fp32",
+                "kwargs": {
+                  "m": 1,
+                  "n": 1,
+                  "k_valid": 1,
+                  "k_pad": 1,
+                  "block_m": 32,
+                  "block_n": 32,
+                  "block_k": 64,
+                  "dtype": "float32",
+                  "noncontig": false
+                },
+                "input_seed": 1754379376,
+                "ok": true,
+                "max_rel_err": 0.0,
+                "detail": ""
+              },
+              {
+                "shape": "empty_block_fp32(c6f6295603ba6d94)",
+                "shape_name": "empty_block_fp32",
+                "kwargs": {
+                  "m": 8,
+                  "n": 8,
+                  "k_valid": 1,
+                  "k_pad": 128,
+                  "block_m": 32,
+                  "block_n": 32,
+                  "block_k": 64,
+                  "dtype": "float32",
+                  "noncontig": false
+                },
+                "input_seed": 781949260,
+                "ok": true,
+                "max_rel_err": 0.0,
+                "detail": ""
+              },
+              {
+                "shape": "k129_bf16(9649d3e5b9402781)",
+                "shape_name": "k129_bf16",
+                "kwargs": {
+                  "m": 8,
+                  "n": 8,
+                  "k_valid": 129,
+                  "k_pad": 192,
+                  "block_m": 32,
+                  "block_n": 32,
+                  "block_k": 64,
+                  "dtype": "bfloat16",
+                  "noncontig": false
+                },
+                "input_seed": 1479826927,
+                "ok": true,
+                "max_rel_err": 0.0,
+                "detail": ""
+              }
+            ],
+            "n_failed": 0
+          },
+          "output_liveness": {
+            "check": "output_liveness",
+            "verdict": "PASS",
+            "detail": "the output is checksummed, changes when an input element changes, is not a copy of an input, and is fully written",
+            "duration_s": 7.59287,
+            "shape": "k1_fp32(035e9078c47cc3fc)",
+            "input_seed": 764133665,
+            "base_run": {
+              "ok": true,
+              "checksums": {
+                "out": "9fb244ceebd1e432d05dd6c1ce3481edf44d4b6c928f9557d2354a1ba3ffc5c9"
+              },
+              "error": "",
+              "duration_s": 1.917189,
+              "input_seed": 764133665
+            },
+            "consumer": "the sandbox child hashes every output byte, so the result must be materialised and cannot be dead-code-eliminated",
+            "input_sensitivity": {
+              "fired": false,
+              "perturbation": "a[0] += 1.0",
+              "perturbed_run": {
+                "ok": true,
+                "checksums": {
+                  "out": "f6201d87d808a78477bc5d971b414b9eaac077de9eec64f5fa42e9a0bf6a25f7"
+                },
+                "error": "",
+                "duration_s": 1.884172,
+                "input_seed": 764133665
+              },
+              "detail": "checksum changed after a[0] += 1.0, as it must"
+            },
+            "passthrough": {
+              "fired": false,
+              "detail": "no output is a verbatim copy of an input"
+            },
+            "uninitialised_memory": {
+              "fired": false,
+              "runs": [
+                {
+                  "ok": true,
+                  "checksums": {
+                    "out": "9fb244ceebd1e432d05dd6c1ce3481edf44d4b6c928f9557d2354a1ba3ffc5c9"
+                  },
+                  "error": "",
+                  "duration_s": 1.93404,
+                  "input_seed": 764133665,
+                  "fill": "float=float('nan'), int=-2147483648"
+                },
+                {
+                  "ok": true,
+                  "checksums": {
+                    "out": "9fb244ceebd1e432d05dd6c1ce3481edf44d4b6c928f9557d2354a1ba3ffc5c9"
+                  },
+                  "error": "",
+                  "duration_s": 1.855283,
+                  "input_seed": 764133665,
+                  "fill": "float=-98765.4375, int=1234567"
+                }
+              ],
+              "method": "torch.empty/empty_like/empty_strided/Tensor.new_empty and numpy.empty/empty_like are wrapped to write a known fill, so any element the candidate leaves unwritten differs between the two runs",
+              "detail": "identical output under both fills; every output element was written"
+            },
+            "fired_subchecks": [],
+            "skipped_subchecks": []
+          },
+          "timing_sanity": {
+            "check": "timing_sanity",
+            "verdict": "PASS",
+            "detail": "every timed shape is above its bytes_moved/1.464e+11 B/s floor (bandwidth from crucible.oracles.o2_perf.measure_achievable_bandwidth().bytes_per_s)",
+            "duration_s": 1.865389,
+            "bandwidth_source": "crucible.oracles.o2_perf.measure_achievable_bandwidth().bytes_per_s",
+            "achievable_bandwidth_bytes_per_s": 146394640861.23553,
+            "per_shape": [
+              {
+                "shape": "k1_fp32(035e9078c47cc3fc)",
+                "bytes_moved": 12,
+                "floor_s": 8.19702137278e-11,
+                "median_s": 0.00029015017207711935,
+                "min_s": 0.000278000021353364,
+                "ratio_median_over_floor": 3539702.519754632,
+                "reps": 30,
+                "statistic": "median"
+              }
+            ],
+            "skipped_shapes": []
+          }
+        },
+        "fired": [],
+        "errored": [],
+        "skipped": {},
+        "passed": [
+          "static_denylist",
+          "randomized_inputs",
+          "held_out_shapes",
+          "output_liveness",
+          "timing_sanity"
+        ]
+      },
+      "duration_s": 18.78336860006675,
+      "capabilities_used": []
+    },
+    {
+      "oracle": "O4",
+      "verdict": "PASS",
+      "reason": "",
+      "evidence": {
+        "checks": {
+          "graph_break": {
+            "check": "graph_break",
+            "verdict": "PASS",
+            "detail": "the candidate has -1 graph break(s), the same as or fewer than the baseline's -1 (backend=eager, device=cuda, shape=k1_fp32) -- no reason text recorded",
+            "required_caps": [],
+            "capabilities_used": [],
+            "duration_s": 13.848037,
+            "shape": "k1_fp32",
+            "shape_key": "035e9078c47cc3fc",
+            "backend": "eager",
+            "lowered": false,
+            "device": "cuda",
+            "backend_note": "no inductor backend on this machine, so dynamo traced with backend='eager': graph breaks are a tracing property and are genuinely measured, but no kernel was lowered and no lowering defect could have been observed",
+            "candidate": {
+              "tag": "candidate",
+              "outcome": "graph_breaks",
+              "backend": "eager",
+              "graph_count": 0,
+              "graph_break_count": -1,
+              "op_count": 0,
+              "break_reasons": [],
+              "fullgraph_ok": false,
+              "fullgraph_error": "Unsupported: Tensor.item\n\nfrom user code:\n   File \"C:\\Users\\archa\\OneDrive\\Desktop\\VLLM\\crucible\\.crucible\\work\\mut-tiled-accum_dtype-6dc7\\O4\\graph_break\\crucible_candidate.py\", line 32, in tiled_matmul\n    if int(mask_k.sum()) == 0:\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n",
+              "error": null
+            },
+            "baseline": {
+              "tag": "baseline",
+              "outcome": "graph_breaks",
+              "backend": "eager",
+              "graph_count": 0,
+              "graph_break_count": -1,
+              "op_count": 0,
+              "break_reasons": [],
+              "fullgraph_ok": false,
+              "fullgraph_error": "Unsupported: Tensor.item\n\nfrom user code:\n   File \"C:\\Users\\archa\\OneDrive\\Desktop\\VLLM\\crucible\\.crucible\\work\\mut-tiled-accum_dtype-6dc7\\O4\\graph_break\\crucible_baseline.py\", line 32, in tiled_matmul\n    if int(mask_k.sum()) == 0:\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n",
+              "error": null
+            },
+            "outcome": "graph_breaks",
+            "baseline_graph_break_count": -1,
+            "graph_break_count": -1,
+            "break_reasons": []
+          },
+          "triton_lowering": {
+            "check": "triton_lowering",
+            "verdict": "SKIP",
+            "detail": "triton is unavailable on this machine, so no kernel was compiled and no register-spill count exists: import triton failed: ImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.",
+            "required_caps": [
+              "triton"
+            ],
+            "capabilities_used": [],
+            "duration_s": 3e-06,
+            "required_cap": "triton",
+            "triton_error": "import triton failed: ImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed."
+          },
+          "pallas_portability": {
+            "check": "pallas_portability",
+            "verdict": "SKIP",
+            "detail": "jax is not installed, so no pallas kernel could be lowered for any backend: ModuleNotFoundError: No module named 'jax'",
+            "required_caps": [],
+            "capabilities_used": [],
+            "duration_s": 1.853968,
+            "platforms_requested": [
+              "tpu",
+              "gpu",
+              "cpu"
+            ],
+            "shape": "k1_fp32",
+            "shape_key": "035e9078c47cc3fc",
+            "probe": {
+              "ok": false,
+              "stage": "import_jax",
+              "error": "ModuleNotFoundError: No module named 'jax'"
+            }
+          },
+          "ir_diff": {
+            "check": "ir_diff",
+            "verdict": "SKIP",
+            "detail": "no inductor backend on this machine can emit output code, so there is no IR to capture or diff -- inductor_cuda: BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n; inductor_cpu: BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n",
+            "required_caps": [
+              "inductor_cpu"
+            ],
+            "capabilities_used": [],
+            "duration_s": 7e-06
+          }
+        },
+        "fired": [],
+        "errored": [],
+        "skipped": {
+          "triton_lowering": "triton is unavailable on this machine, so no kernel was compiled and no register-spill count exists: import triton failed: ImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.",
+          "pallas_portability": "jax is not installed, so no pallas kernel could be lowered for any backend: ModuleNotFoundError: No module named 'jax'",
+          "ir_diff": "no inductor backend on this machine can emit output code, so there is no IR to capture or diff -- inductor_cuda: BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n; inductor_cpu: BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n"
+        },
+        "passed": [
+          "graph_break"
+        ],
+        "ran": [
+          "graph_break"
+        ]
+      },
+      "duration_s": 15.7020677998662,
+      "capabilities_used": []
+    }
+  ],
+  "environment": {
+    "caps": {
+      "cuda": true,
+      "cuda_device_count": 1,
+      "device_name": "NVIDIA T1000 8GB",
+      "cuda_version": "12.4",
+      "triton": false,
+      "triton_error": "import triton failed: ImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.",
+      "ncu": "C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2024.2.0\\ncu.BAT",
+      "can_lock_clocks": false,
+      "gloo": true,
+      "nccl": false,
+      "cxx_compiler": null,
+      "inductor_cpu": false,
+      "inductor_cuda": false,
+      "torch_version": "2.6.0+cu124",
+      "platform": "Windows-10-10.0.26200-SP0",
+      "details": {
+        "can_lock_clocks": "The current user does not have permission to change clocks for GPU 00000000:01:00.0.\nTerminating early due to previous errors.",
+        "cxx_compiler": "none of cl/g++/gcc/clang++/clang on PATH",
+        "inductor_cpu": "BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n",
+        "inductor_cuda": "BackendCompilerFailed: backend='inductor' raised:\nImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed.\n\nSet TORCH_LOGS=\"+dynamo\" and TORCHDYNAMO_VERBOSE=1 for more information\n\n\nYou can suppress this exception and fall back to eager by setting:\n    import torch._dynamo\n    torch._dynamo.config.suppress_errors = True\n",
+        "nccl": "torch.distributed.is_nccl_available() returned False",
+        "triton": "import triton failed: ImportError: DLL load failed while importing libtriton: A dynamic link library (DLL) initialization routine failed."
+      }
+    },
+    "python": "3.11.5 (Windows-10-10.0.26200-SP0)",
+    "torch": "2.6.0+cu124",
+    "host": "Archana-PC",
+    "utc": "2026-08-26T19:08:26+00:00"
+  },
+  "duration_s": 62.77228519995697,
+  "candidate_sha256": "301c7c333a32fd859ceb09b6d301c0a3ae7aef0975c0dd3e42af651296d31b5c"
+}

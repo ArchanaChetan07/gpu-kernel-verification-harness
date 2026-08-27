@@ -26,14 +26,22 @@ deliverable and surfaces months later as model behaviour.
 Measured on a single NVIDIA T1000 8GB (sm_75), CPU-only CI on every push. Full run
 recorded in [docs/RESULTS.md](docs/RESULTS.md).
 
+One bank of 21 tasks, one verification pass — every figure below comes from that same run.
+
 | | measured | target |
 |---|---|---|
-| Reference solutions executed and passed every applicable oracle | **93.3%** (14/15) | 100% |
+| Reference solutions executed and passed every applicable oracle | **90.5%** (19/21) | 100% |
 | Reward-hack attacks caught by the harness | **100%** (61/61) | 100% |
-| Silent-failure share of the bank (T5+T6) | **61.9%** | ≥35% |
-| Mutation classes producing admitted tasks | **11/12** | — |
+| Silent-failure share of the bank (T5+T6) | **61.9%** (13/21) | ≥35% |
+| Mutation classes producing admitted tasks in this bank | **10/12** | — |
 | Taxonomy cells reachable with the current seed set | **12/48** | see below |
 | Test suite | **~600 passing** | green on every push |
+
+The two failures are the same seed under the N-rank oracle: a 2-rank run is invariant to world
+size, a 4-rank run does not finish inside the timeout. Whether that is a genuine collective
+deadlock — a T3 finding, and the tier models are weakest at — or a limitation of gloo
+multi-process on this host is **not yet determined**, so it is recorded as a failure rather
+than explained away.
 
 <p align="center">
   <picture>
